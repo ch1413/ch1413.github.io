@@ -1,0 +1,1660 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>全国公厕智能导航系统</title>
+    <script type="text/javascript">
+        window._AMapSecurityConfig = {
+            securityJsCode: "99e3954b4b466ebbbe24118338ef6c91",
+        };
+    </script>
+    <!-- 使用高德地图API v2.0 修复500错误 -->
+    <script
+        src="https://webapi.amap.com/maps?v=2.0&key=3da096629cc77da916196115d45f9d63&plugin=AMap.ToolBar,AMap.Scale,AMap.HeatMap,AMap.Driving"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft YaHei", sans-serif;
+        }
+
+        body,
+        html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        /* 系统头部 */
+        .system-header {
+            height: 60px;
+            background: rgba(255, 255, 255, 0.95);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 30px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            position: relative;
+            z-index: 1000;
+        }
+
+        .system-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+        }
+
+        .system-title i {
+            margin-right: 10px;
+            font-size: 24px;
+            color: #3498db;
+        }
+
+        .system-version {
+            font-size: 14px;
+            color: #7f8c8d;
+            background: #f8f9fa;
+            padding: 5px 15px;
+            border-radius: 20px;
+        }
+
+        /* 地图容器 - 修复Canvas性能警告 */
+        #mapContainer {
+            width: 100%;
+            height: calc(100vh - 60px);
+            position: relative;
+        }
+
+        /* 左侧控制面板 */
+        .left-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 320px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+            z-index: 100;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(5px);
+        }
+
+        /* 右侧导航面板 */
+        .right-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 300px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+            z-index: 100;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(5px);
+        }
+
+        .panel-section {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .panel-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .section-title {
+            font-size: 16px;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+        }
+
+        .section-title i {
+            margin-right: 8px;
+            color: #3498db;
+        }
+
+        /* 输入框和选择器样式 */
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-label {
+            display: block;
+            font-size: 13px;
+            color: #3498db;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .input-field,
+        .select-field {
+            width: 100%;
+            padding: 10px 15px;
+            border: 2px solid #e0e6ed;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+            background: #f8fafc;
+        }
+
+        .input-field:focus,
+        .select-field:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+
+        /* 按钮样式 */
+        .btn-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        /* 热力图控制按钮组 - 新增 */
+        .heatmap-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #2980b9, #2573a7);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #9b59b6, #8e44ad);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, #8e44ad, #7d3c98);
+            transform: translateY(-1px);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: linear-gradient(135deg, #27ae60, #219653);
+            transform: translateY(-1px);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+        }
+
+        /* 热力图控制按钮样式 - 新增 */
+        .btn-heatmap {
+            background: linear-gradient(135deg, #e67e22, #d35400);
+            color: white;
+            font-size: 13px;
+            padding: 8px 5px;
+        }
+
+        .btn-heatmap:hover {
+            background: linear-gradient(135deg, #d35400, #c0392b);
+            transform: translateY(-1px);
+        }
+
+        /* 状态显示 */
+        .status-panel {
+            margin-top: 15px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+            font-size: 13px;
+            color: #2c3e50;
+        }
+
+        /* 导航信息面板 */
+        .navigation-info {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 10px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .nav-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .nav-value {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .nav-distance {
+            color: #e74c3c;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .nav-time {
+            color: #3498db;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        /* 热力图图例 - 新增 */
+        .heatmap-legend {
+            position: absolute;
+            bottom: 80px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 8px;
+            padding: 10px 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+            display: none;
+        }
+
+        .legend-title {
+            font-size: 12px;
+            color: #2c3e50;
+            margin-bottom: 8px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .legend-gradient {
+            width: 200px;
+            height: 20px;
+            background: linear-gradient(to right, rgba(128, 0, 128, 0.7), rgba(255, 0, 0, 0.8), rgba(255, 165, 0, 0.9), rgba(255, 255, 0, 1), rgba(255, 255, 255, 1));
+            border-radius: 4px;
+            margin-bottom: 5px;
+        }
+
+        .legend-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: #7f8c8d;
+        }
+
+        .nav-character {
+            width: 40px;
+            height: 40px;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="30" r="20" fill="%23ff6b6b"/><path d="M30,70 Q50,90 70,70 L50,50 Z" fill="%234ecdc4"/><circle cx="40" cy="25" r="5" fill="white"/><circle cx="60" cy="25" r="5" fill="white"/><path d="M45,35 Q50,40 55,35" stroke="white" stroke-width="3" fill="none"/></svg>') no-repeat center;
+            background-size: contain;
+            border-radius: 50%;
+            transition: transform 0.1s linear;
+            z-index: 1000;
+            pointer-events: none;
+        }
+
+        .nav-progress {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            max-width: 600px;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            z-index: 1000;
+            overflow: hidden;
+        }
+
+        .nav-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #3498db, #2ecc71);
+            width: 0%;
+            transition: width 0.3s linear;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 1200px) {
+            .right-panel {
+                display: none;
+            }
+
+            .left-panel {
+                width: 95%;
+                left: 2.5%;
+            }
+
+            .heatmap-legend {
+                width: 90%;
+                left: 5%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 系统头部 -->
+    <div class="system-header">
+        <div class="system-title">
+            <<i>🚽</< /i>
+                全国公厕智能导航系统
+        </div>
+        <div class="system-version">
+            v2.2 - 修复热力图&导航动画
+        </div>
+    </div>
+
+    <!-- 地图容器 -->
+    <div id="mapContainer"></div>
+
+    <!-- 导航进度条 -->
+    <div class="nav-progress" id="navProgress" style="display: none;">
+        <div class="nav-progress-bar" id="navProgressBar"></div>
+    </div>
+
+    <!-- 热力图图例 - 新增 -->
+    <div class="heatmap-legend" id="heatmapLegend">
+        <div class="legend-title">公厕热度分布</div>
+        <div class="legend-gradient"></div>
+        <div class="legend-labels">
+            <span>低热度</span>
+            <span>中热度</span>
+            <span>高热度</span>
+        </div>
+    </div>
+
+    <!-- 左侧控制面板 -->
+    <div class="left-panel">
+        <!-- 地图模式切换 -->
+        <div class="panel-section">
+            <div class="section-title">
+                <<i>🗺️</< /i>
+                    地图模式
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-primary" id="btnNormalMap">
+                    <<i>🌐</< /i>
+                        标准地图
+                </button>
+                <button class="btn btn-secondary" id="btnSatellite">
+                    <<i>🛰️</< /i>
+                        卫星影像
+                </button>
+                <button class="btn btn-warning" id="btnDarkHeatmap">
+                    <<i>🔥</i>
+                        深色热力图
+                </button>
+            </div>
+
+            <!-- 热力图控制按钮组 - 新增 -->
+            <div class="heatmap-controls">
+                <button class="btn btn-heatmap" id="btnHeatmapSmall">
+                    <<i>🔍</i>
+                        小半径
+                </button>
+                <button class="btn btn-heatmap" id="btnHeatmapMedium">
+                    <<i>🔍</i>
+                        中半径
+                </button>
+                <button class="btn btn-heatmap" id="btnHeatmapLarge">
+                    <<i>🔍</i>
+                        大半径
+                </button>
+            </div>
+        </div>
+
+        <!-- 位置搜索 -->
+        <div class="panel-section">
+            <div class="section-title">
+                <<i>📍</< /i>
+                    位置搜索
+            </div>
+            <div class="input-group">
+                <label class="input-label">搜索城市或区域</label>
+                <input type="text" class="input-field" id="searchCity" placeholder="输入城市名称，如：北京、上海" value="北京市">
+            </div>
+            <button class="btn btn-primary" id="btnSearchCity" style="width: 100%; margin-bottom: 10px;">
+                <<i>🔍</< /i>
+                    搜索区域公厕
+            </button>
+            <button class="btn btn-secondary" id="btnGetLocation" style="width: 100%;">
+                <<i>📍</< /i>
+                    获取当前位置
+            </button>
+        </div>
+
+        <!-- 公厕显示控制 -->
+        <div class="panel-section">
+            <div class="section-title">
+                <<i>🚽</< /i>
+                    公厕显示
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-primary" id="btnShowAll">
+                    <<i>🏠</< /i>
+                        显示全部
+                </button>
+                <button class="btn btn-danger" id="btnClearAll">
+                    <<i>🗑️</< /i>
+                        清空显示
+                </button>
+            </div>
+        </div>
+
+        <!-- 系统状态 -->
+        <div class="status-panel" id="systemStatus">
+            系统初始化中...
+        </div>
+    </div>
+
+    <!-- 右侧：导航控制面板 -->
+    <div class="right-panel">
+        <!-- 导航设置 -->
+        <div class="panel-section">
+            <div class="section-title">
+                <<i>🧭</< /i>
+                    导航设置
+            </div>
+            <div class="input-group">
+                <label class="input-label">当前位置</label>
+                <input type="text" class="input-field" id="currentPosition" placeholder="点击地图或自动获取" readonly>
+            </div>
+            <div class="input-group">
+                <label class="input-label">目标公厕</label>
+                <select class="select-field" id="selectToilet">
+                    <option value="">请选择目标公厕</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label class="input-label">交通工具</label>
+                <select class="select-field" id="transportMode">
+                    <option value="walking">步行</option>
+                    <option value="driving" selected>驾车</option>
+                    <option value="bicycling">骑行</option>
+                    <option value="transit">公交</option>
+                </select>
+            </div>
+            <button class="btn btn-success" id="btnStartNavigation" style="width: 100%;">
+                <<i>🚀</< /i>
+                    开始导航
+            </button>
+            <button class="btn btn-warning" id="btnPauseNavigation"
+                style="width: 100%; margin-top: 10px; display: none;">
+                <<i>⏸️</< /i>
+                    暂停导航
+            </button>
+        </div>
+
+        <!-- 导航信息 -->
+        <div class="navigation-info" id="navInfo" style="display: none;">
+            <div class="nav-item">
+                <span>目的地：</span>
+                <span class="nav-value" id="navDestination">-</span>
+            </div>
+            <div class="nav-item">
+                <span>距离：</span>
+                <span class="nav-distance" id="navDistance">-</span>
+            </div>
+            <div class="nav-item">
+                <span>预计时间：</span>
+                <span class="nav-time" id="navTime">-</span>
+            </div>
+            <div class="nav-item">
+                <span>交通工具：</span>
+                <span class="nav-value" id="navTransport">-</span>
+            </div>
+            <button class="btn btn-danger" id="btnStopNav" style="width: 100%; margin-top: 10px;">
+                <<i>⏹️</< /i>
+                    结束导航
+            </button>
+        </div>
+
+        <!-- 公厕统计 -->
+        <div class="panel-section">
+            <div class="section-title">
+                <<i>📊</< /i>
+                    公厕统计
+            </div>
+            <div class="status-panel">
+                <div>全国公厕总数: <strong id="totalToilets">0</strong></div>
+                <div>当前显示: <strong id="displayedToilets">0</strong></div>
+                <div>普通公厕: <span style="color:#3498db;" id="generalCount">0</span></div>
+                <div>无障碍: <span style="color:#e74c3c;" id="accessibleCount">0</span></div>
+                <div>母婴室: <span style="color:#9b59b6;" id="motherCount">0</span></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============ 系统配置 ============
+        const CONFIG = {
+            AMAP_KEY: '3da096629cc77da916196115d45f9d63', // 替换为你的高德Web端JS API Key
+            DEFAULT_CENTER: [116.397428, 39.90923], // 北京中心
+            DEFAULT_ZOOM: 5, // 全国视图
+            MAX_ZOOM: 16, // 卫星图最大缩放级别（避免空白）
+            HEATMAP_OPTIONS: {
+                radius: 20,  // 热力图默认半径
+                minRadius: 10, // 最小半径
+                maxRadius: 30, // 最大半径
+                opacity: [0, 0.9],
+                gradient: {  // 深色热力图配色
+                    0.0: 'rgba(0, 0, 0, 0)',
+                    0.1: 'rgba(128, 0, 128, 0.7)',
+                    0.3: 'rgba(255, 0, 0, 0.8)',
+                    0.5: 'rgba(255, 165, 0, 0.9)',
+                    0.7: 'rgba(255, 255, 0, 1)',
+                    1.0: 'rgba(255, 255, 255, 1)'
+                }
+            },
+            ANIMATION_SPEED: { // 不同交通工具的动画速度（像素/毫秒）
+                walking: 0.5,
+                driving: 2,
+                bicycling: 1,
+                transit: 1.5
+            }
+        };
+
+        // ============ 全国公厕数据（来源：高德POI检索） ============
+        // 运行时通过高德POI检索填充，避免使用本地静态数据
+        const NATIONAL_TOILET_DATA = [];
+
+        // ============ 全局变量 ============
+        let map = null;
+        let markers = [];
+        let currentLocation = null;
+        let currentLocationMarker = null;
+        let heatmapLayer = null;
+        let infoWindow = null;
+        let navigationLine = null;
+        let isNavigating = false;
+        let isPaused = false;
+        let currentTransportMode = 'driving';
+        let navAnimationFrame = null;
+        let navPath = []; // 导航路径坐标数组
+        let navCharacterMarker = null; // 导航人物标记
+        let navCurrentIndex = 0; // 当前动画位置索引
+        let navProgress = 0; // 导航进度（0-100）
+        let currentHeatmapRadius = CONFIG.HEATMAP_OPTIONS.radius; // 当前热力图半径
+
+        // ============ 修复：地图初始化 ============
+        function initMap() {
+            console.log('正在初始化地图系统...');
+
+            try {
+                // 检查高德地图API是否可用
+                if (typeof AMap === 'undefined') {
+                    updateStatus('高德地图API加载失败', true);
+                    return;
+                }
+
+                // 初始化地图 - 修复Canvas性能警告 + 适配卫星图
+                map = new AMap.Map('mapContainer', {
+                    zoom: CONFIG.DEFAULT_ZOOM,
+                    center: CONFIG.DEFAULT_CENTER,
+                    viewMode: '2D', // 改为2D视图，提升卫星图兼容性
+                    mapStyle: 'amap://styles/normal',
+                    resizeEnable: true,
+                    maxZoom: CONFIG.MAX_ZOOM, // 限制最大缩放级别
+                    renderOptions: {
+                        willReadFrequently: true  // 修复Canvas性能警告
+                    }
+                });
+
+                // 初始加载标准地图瓦片（确保默认显示正常）
+                const normalLayer = new AMap.TileLayer({
+                    url: 'https://webst0{1,2,3,4}.is.autonavi.com/appmaptile?style=7&x={x}&y={y}&z={z}&key=' + CONFIG.AMAP_KEY,
+                    zIndex: 1
+                });
+                map.add(normalLayer);
+
+                // 新增：监听地图加载错误（定位卫星图权限问题）
+                map.on('error', (err) => {
+                    console.error('地图加载错误:', err);
+                    if (err.info.includes('SERVICE_NOT_AVAILABLE')) {
+                        updateStatus('卫星影像服务未开通，已自动切换至标准地图', true);
+                        switchMapMode('normal');
+                    } else if (err.info.includes('INVALID_USER_KEY')) {
+                        updateStatus('API Key无效，请更换正确的Web端JS API Key', true);
+                    } else if (err.info.includes('OVER_QUERY_LIMIT')) {
+                        updateStatus('API调用次数超限，请稍后再试', true);
+                    }
+                });
+
+                // 修复：安全的控件加载
+                addMapControlsSafely();
+
+                // 创建信息窗口
+                infoWindow = new AMap.InfoWindow({
+                    offset: new AMap.Pixel(0, -30),
+                    closeWhenClickMap: true
+                });
+
+                // 绑定地图点击事件
+                map.on('click', function (e) {
+                    setCurrentPosition([e.lnglat.getLng(), e.lnglat.getLat()]);
+                });
+
+                // 不使用本地静态数据，点击“显示全部”从高德POI检索公厕数据
+                updateStatus('就绪：请点击“显示全部”从高德POI检索公厕数据');
+
+                // 更新统计信息（初始均为0）
+                updateStatistics();
+
+                updateStatus('全国公厕系统已启动，支持卫星影像切换和增强热力图');
+                console.log('地图系统初始化成功！');
+
+            } catch (error) {
+                console.error('地图初始化失败:', error);
+                updateStatus('地图加载失败: ' + error.message, true);
+            }
+        }
+
+        // ============ 修复：安全的控件加载 ============
+        function addMapControlsSafely() {
+            // 添加比例尺
+            if (window.AMap && AMap.Scale) {
+                try {
+                    map.addControl(new AMap.Scale({
+                        position: 'LB',
+                        visible: true
+                    }));
+                } catch (e) {
+                    console.warn('比例尺控件加载失败:', e.message);
+                }
+            }
+
+            // 修复ToolBar问题
+            if (window.AMap && AMap.ToolBar) {
+                try {
+                    // 先检查版本兼容性
+                    if (typeof AMap.ToolBar === 'function') {
+                        map.addControl(new AMap.ToolBar({
+                            position: 'LT',
+                            offset: [10, 10]
+                        }));
+                        console.log('ToolBar控件加载成功');
+                    } else {
+                        console.warn('ToolBar不是构造函数，跳过');
+                    }
+                } catch (error) {
+                    console.warn('ToolBar初始化失败，创建自定义工具栏');
+                    createCustomToolbar();
+                }
+            } else {
+                console.warn('ToolBar控件不可用，创建自定义工具栏');
+                createCustomToolbar();
+            }
+        }
+
+        // ============ 修复：自定义工具栏 ============
+        function createCustomToolbar() {
+            const toolbarDiv = document.createElement('div');
+            toolbarDiv.style.cssText = `
+                position: absolute;
+                top: 20px;
+                right: 20px;
+                background: white;
+                border-radius: 4px;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+                padding: 5px;
+                z-index: 1000;
+                display: flex;
+                gap: 5px;
+            `;
+
+            toolbarDiv.innerHTML = `
+                <button onclick="map.zoomIn()" style="width: 30px; height: 30px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">+</button>
+                <button onclick="map.zoomOut()" style="width: 30px; height: 30px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">-</button>
+            `;
+
+            document.getElementById('mapContainer').appendChild(toolbarDiv);
+        }
+
+        // ============ 核心功能实现 ============
+
+        // 1. 加载所有公厕
+        function loadAllToilets() {
+            clearMarkers();
+
+            if (!NATIONAL_TOILET_DATA || NATIONAL_TOILET_DATA.length === 0) {
+                updateStatus('当前没有公厕数据。请点击“显示全部”从高德POI检索公厕数据', true);
+                updateStatistics();
+                return;
+            }
+
+            NATIONAL_TOILET_DATA.forEach(toilet => {
+                const marker = createToiletMarker(toilet);
+                markers.push(marker);
+                map.add(marker);
+            });
+
+            // 调整到合适视野显示全国
+            map.setZoomAndCenter(CONFIG.DEFAULT_ZOOM, CONFIG.DEFAULT_CENTER);
+            updateStatus(`已加载全国 ${NATIONAL_TOILET_DATA.length} 个公厕数据`);
+            updateStatistics();
+        }
+
+        // 2. 创建公厕标记
+        function createToiletMarker(toilet) {
+            let color = '#3498db';
+            let icon = '🚻';
+
+            if (toilet.type === 'accessible') {
+                color = '#e74c3c';
+                icon = '♿';
+            } else if (toilet.type === 'mother') {
+                color = '#9b59b6';
+                icon = '👶';
+            }
+
+            const marker = new AMap.Marker({
+                position: [toilet.lng, toilet.lat],
+                title: `${toilet.name} (${toilet.city}) - 热度: ${toilet.popularity}`,
+                content: `
+                    <div style="background: ${color}; color: white; 
+                         width: 36px; height: 36px; border-radius: 50%; 
+                         display: flex; align-items: center; justify-content: center;
+                         font-size: 18px; font-weight: bold; box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+                         border: 2px solid white; cursor: pointer;">
+                        ${icon}
+                    </div>
+                `,
+                offset: new AMap.Pixel(-18, -18)
+            });
+
+            // 绑定点击事件
+            marker.on('click', function () {
+                showToiletInfo(toilet, marker.getPosition());
+                document.getElementById('selectToilet').value = toilet.id;
+            });
+
+            return marker;
+        }
+
+        // 3. 修复：切换地图模式（核心修复卫星图显示，增强热力图）
+        function switchMapMode(mode) {
+            // 关键：先移除所有现有基础图层（避免覆盖）
+            const allLayers = map.getLayers();
+            allLayers.forEach(layer => {
+                // 只保留控件/标记图层，移除地图瓦片/热力图图层
+                if (layer instanceof AMap.TileLayer || layer instanceof AMap.HeatMap) {
+                    map.remove(layer);
+                }
+            });
+
+            // 隐藏热力图图例
+            document.getElementById('heatmapLegend').style.display = 'none';
+
+            switch (mode) {
+                case 'normal':
+                    // 加载标准地图（矢量图）
+                    const normalLayer = new AMap.TileLayer({
+                        url: 'https://webst0{1,2,3,4}.is.autonavi.com/appmaptile?style=7&x={x}&y={y}&z={z}&key=' + CONFIG.AMAP_KEY,
+                        zIndex: 1
+                    });
+                    map.add(normalLayer);
+                    heatmapLayer = null;
+                    updateStatus('已切换至标准地图');
+                    break;
+
+                case 'satellite':
+                    try {
+                        // 方案1：优先使用官方卫星图层（需权限）
+                        const satelliteLayer = new AMap.TileLayer.Satellite({ zIndex: 1 });
+                        map.add(satelliteLayer);
+                        // 叠加路网（避免纯卫星图无道路标注）
+                        const roadNetLayer = new AMap.TileLayer.RoadNet({ zIndex: 2 });
+                        map.add(roadNetLayer);
+                        updateStatus('已切换至卫星影像（含路网标注）');
+                    } catch (e) {
+                        console.warn('官方卫星图层加载失败，使用瓦片直连模式:', e);
+                        // 方案2：瓦片直连模式（无需权限，稳定显示）
+                        const satelliteTileLayer = new AMap.TileLayer({
+                            zIndex: 1,
+                            getTileUrl: (x, y, z) => {
+                                // 卫星瓦片URL模板（style=6代表卫星图）
+                                const subdomain = ['1', '2', '3', '4'][Math.floor(Math.random() * 4)];
+                                return `https://webst0${subdomain}.is.autonavi.com/appmaptile?style=6&x=${x}&y=${y}&z=${z}&key=${CONFIG.AMAP_KEY}`;
+                            }
+                        });
+                        map.add(satelliteTileLayer);
+                        // 叠加路网（显示道路名称）
+                        const roadLayer = new AMap.TileLayer.RoadNet({ zIndex: 2 });
+                        map.add(roadLayer);
+                        updateStatus('已切换至卫星影像（稳定瓦片模式）');
+                    }
+                    heatmapLayer = null;
+                    break;
+
+                case 'heatmap':
+                    showDarkHeatmap();
+                    break;
+            }
+        }
+
+        // 4. 增强：显示深色热力图（新增动态半径、图例显示）
+        // 增强版：深色热力图初始化（修复加载失败）
+        function showDarkHeatmap() {
+            // 先移除现有热力图
+            if (heatmapLayer) {
+                map.remove(heatmapLayer);
+                heatmapLayer = null;
+                document.getElementById('heatmapLegend').style.display = 'none';
+                updateStatus('已关闭热力图');
+                return;
+            }
+
+            // 强制检查AMap对象是否存在
+            if (typeof AMap === 'undefined') {
+                updateStatus('高德地图API未加载完成', true);
+                return;
+            }
+
+            // 方案1：使用v2.0兼容写法加载HeatMap插件
+            AMap.plugin(['AMap.HeatMap'], function () {
+                // 延迟500ms确保插件完全加载
+                setTimeout(() => {
+                    try {
+                        // 1. 先验证HeatMap类是否存在
+                        if (typeof AMap.HeatMap !== 'function') {
+                            updateStatus('热力图插件加载失败：AMap.HeatMap未定义', true);
+                            // 降级方案：尝试旧版类名
+                            if (typeof AMap.Heatmap === 'function') {
+                                updateStatus('尝试使用旧版热力图类名', false);
+                                initHeatmap(AMap.Heatmap);
+                            }
+                            return;
+                        }
+
+                        // 2. 初始化热力图（兼容v2.0）
+                        initHeatmap(AMap.HeatMap);
+
+                    } catch (error) {
+                        console.error('热力图初始化异常:', error);
+                        updateStatus(`热力图加载失败：${error.message}`, true);
+                        // 终极降级：显示静态热力图标记
+                        showStaticHeatmapMarkers();
+                    }
+                }, 500);
+            });
+
+            // 核心初始化逻辑（抽离为函数）
+            function initHeatmap(HeatMapClass) {
+                // 准备热力图数据
+                const heatmapData = NATIONAL_TOILET_DATA.map(toilet => ({
+                    lng: toilet.lng,
+                    lat: toilet.lat,
+                    count: toilet.popularity || 50 // 热度值（0-100）
+                }));
+
+                // 创建热力图实例
+                heatmapLayer = new HeatMapClass(map, {
+                    radius: currentHeatmapRadius,
+                    opacity: [0.2, 0.8], // 降低透明度避免遮挡地图
+                    gradient: { // 简化渐变配置（避免兼容问题）
+                        0.1: '#3366FF',
+                        0.3: '#33CCCC',
+                        0.5: '#99CC00',
+                        0.7: '#FFCC33',
+                        0.9: '#FF3333'
+                    },
+                    zIndex: 5
+                });
+
+                // 设置数据（兼容v1.4和v2.0）
+                if (heatmapLayer.setData) {
+                    heatmapLayer.setData(heatmapData); // v2.0
+                } else if (heatmapLayer.setDataSet) {
+                    heatmapLayer.setDataSet({ data: heatmapData }); // v1.4
+                } else {
+                    throw new Error('热力图无setData/setDataSet方法');
+                }
+
+                // 显示图例
+                document.getElementById('heatmapLegend').style.display = 'block';
+                updateStatus(`已显示热力图 - 半径: ${currentHeatmapRadius}px`);
+            }
+
+            // 降级方案：静态热力图标记（API加载失败时备用）
+            function showStaticHeatmapMarkers() {
+                NATIONAL_TOILET_DATA.forEach(toilet => {
+                    // 根据热度值设置标记颜色
+                    let color = '#3366FF';
+                    if (toilet.popularity > 60) color = '#33CCCC';
+                    if (toilet.popularity > 70) color = '#99CC00';
+                    if (toilet.popularity > 80) color = '#FFCC33';
+                    if (toilet.popularity > 90) color = '#FF3333';
+
+                    const marker = new AMap.Marker({
+                        position: [toilet.lng, toilet.lat],
+                        content: `<div style="width: ${toilet.popularity / 5}px; height: ${toilet.popularity / 5}px; 
+                             background: ${color}; border-radius: 50%; opacity: 0.7;"></div>`,
+                        offset: new AMap.Pixel(-toilet.popularity / 10, -toilet.popularity / 10)
+                    });
+                    map.add(marker);
+                    markers.push(marker);
+                });
+                updateStatus('热力图加载失败，已显示静态热度标记', true);
+            }
+        }
+        // 新增：调整热力图半径（修复：方法调用）
+        function adjustHeatmapRadius(newRadius) {
+            if (!heatmapLayer) {
+                updateStatus('请先启用热力图', true);
+                return;
+            }
+
+            currentHeatmapRadius = newRadius;
+            // 修复：直接修改配置并重新渲染
+            heatmapLayer.setOptions({ radius: newRadius });
+            // 重新设置数据触发重绘
+            const heatmapData = NATIONAL_TOILET_DATA.map(toilet => ({
+                lng: toilet.lng,
+                lat: toilet.lat,
+                count: toilet.popularity || 50
+            }));
+            heatmapLayer.setData({
+                data: heatmapData,
+                max: 100
+            });
+
+            updateStatus(`热力图半径已调整为: ${newRadius}px`);
+        }
+
+        // 5. 设置当前位置
+        function setCurrentPosition(position) {
+            currentLocation = position;
+
+            document.getElementById('currentPosition').value =
+                `${position[0].toFixed(6)}, ${position[1].toFixed(6)}`;
+
+            if (currentLocationMarker) {
+                map.remove(currentLocationMarker);
+            }
+
+            currentLocationMarker = new AMap.Marker({
+                position: position,
+                content: `
+                    <div style="background: #2ecc71; color: white; 
+                         width: 40px; height: 40px; border-radius: 50%; 
+                         display: flex; align-items: center; justify-content: center;
+                         font-size: 20px; font-weight: bold; box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+                         border: 3px solid white;">
+                        📍
+                    </div>
+                `,
+                offset: new AMap.Pixel(-20, -20),
+                zIndex: 100 // 确保当前位置标记在最上层
+            });
+
+            map.add(currentLocationMarker);
+        }
+
+        // 6. 获取GPS位置
+        function getGPSLocation() {
+            if (!navigator.geolocation) {
+                updateStatus('浏览器不支持地理定位', true);
+                return;
+            }
+
+            updateStatus('正在获取当前位置...');
+
+            navigator.geolocation.getCurrentPosition(
+                function (position) {
+                    const location = [
+                        position.coords.longitude,
+                        position.coords.latitude
+                    ];
+                    setCurrentPosition(location);
+                    map.setCenter(location);
+                    map.setZoom(Math.min(12, CONFIG.MAX_ZOOM)); // 限制缩放级别
+                    updateStatus('GPS定位成功');
+                },
+                function (error) {
+                    updateStatus('定位失败，请检查定位权限', true);
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000
+                }
+            );
+        }
+
+        // 7. 新增：创建导航人物标记
+        function createNavCharacter(position) {
+            if (navCharacterMarker) {
+                map.remove(navCharacterMarker);
+            }
+
+            // 创建带DOM元素的标记（修复：确保能获取到元素）
+            const characterDiv = document.createElement('div');
+            characterDiv.className = 'nav-character';
+
+            navCharacterMarker = new AMap.Marker({
+                position: position,
+                content: characterDiv,
+                offset: new AMap.Pixel(-20, -20),
+                zIndex: 1000 // 确保人物在最上层
+            });
+
+            map.add(navCharacterMarker);
+            return navCharacterMarker;
+        }
+
+        // 8. 新增：导航动画核心函数（修复：DOM元素获取）
+        function animateNavigation() {
+            if (isPaused || !isNavigating || navPath.length <= 1) return;
+
+            // 获取当前速度（根据交通工具类型）
+            const speed = CONFIG.ANIMATION_SPEED[currentTransportMode];
+
+            // 获取当前位置和下一个目标点
+            const currentPos = navPath[navCurrentIndex];
+            const nextPos = navPath[navCurrentIndex + 1];
+
+            // 计算两点之间的距离
+            const distance = calculateDistance(currentPos, nextPos);
+
+            // 如果距离很近，直接跳到下一个点
+            if (distance < 10) {
+                navCurrentIndex++;
+                navCharacterMarker.setPosition(nextPos);
+
+                // 更新进度
+                navProgress = (navCurrentIndex / (navPath.length - 1)) * 100;
+                document.getElementById('navProgressBar').style.width = `${navProgress}%`;
+
+                // 导航完成
+                if (navCurrentIndex >= navPath.length - 1) {
+                    finishNavigation();
+                    return;
+                }
+
+                // 计算人物朝向（面向下一个点）
+                const angle = calculateAngle(currentPos, nextPos);
+                // 修复：正确获取导航人物DOM元素并设置旋转
+                const characterEl = navCharacterMarker.getContent();
+                if (characterEl) {
+                    characterEl.style.transform = `rotate(${angle}deg)`;
+                }
+
+                requestAnimationFrame(animateNavigation);
+                return;
+            }
+
+            // 计算移动步长
+            const stepLng = (nextPos[0] - currentPos[0]) / distance * speed;
+            const stepLat = (nextPos[1] - currentPos[1]) / distance * speed;
+
+            // 更新人物位置
+            const newPos = [currentPos[0] + stepLng, currentPos[1] + stepLat];
+            navCharacterMarker.setPosition(newPos);
+
+            // 更新路径数组中的当前位置（确保动画流畅）
+            navPath[navCurrentIndex] = newPos;
+
+            // 计算人物朝向
+            const angle = calculateAngle(newPos, nextPos);
+            // 修复：正确获取导航人物DOM元素并设置旋转
+            const characterEl = navCharacterMarker.getContent();
+            if (characterEl) {
+                characterEl.style.transform = `rotate(${angle}deg)`;
+            }
+
+            // 继续下一帧动画
+            navAnimationFrame = requestAnimationFrame(animateNavigation);
+        }
+
+        // 9. 新增：计算两点之间的角度（用于人物朝向）
+        function calculateAngle(from, to) {
+            const dx = to[0] - from[0];
+            const dy = to[1] - from[1];
+            let angle = Math.atan2(dy, dx) * 180 / Math.PI;
+            return angle + 90; // 调整朝向，让人物面向移动方向
+        }
+
+        // 10. 新增：使用高德API获取真实道路路径
+        function getRealRoadPath(start, end, callback) {
+            AMap.plugin('AMap.Driving', function () {
+                const driving = new AMap.Driving({
+                    map: map,
+                    policy: AMap.DrivingPolicy.LEAST_TIME
+                });
+
+                driving.search(
+                    new AMap.LngLat(start[0], start[1]),
+                    new AMap.LngLat(end[0], end[1]),
+                    (status, result) => {
+                        if (status === 'complete' && result.routes.length > 0) {
+                            const path = [];
+                            // 提取所有路径点
+                            result.routes[0].steps.forEach(step => {
+                                step.path.forEach(pt => {
+                                    path.push([pt.lng, pt.lat]);
+                                });
+                            });
+                            callback(path);
+                        } else {
+                            // 如果获取不到真实路径，使用直线路径兜底
+                            callback([start, end]);
+                        }
+                    }
+                );
+            });
+        }
+
+        // 11. 开始导航（新增动画逻辑）
+        function startNavigation() {
+            if (!currentLocation) {
+                updateStatus('请先设置当前位置', true);
+                return;
+            }
+
+            const toiletId = document.getElementById('selectToilet').value;
+            if (!toiletId) {
+                updateStatus('请选择目标公厕', true);
+                return;
+            }
+
+            const toilet = NATIONAL_TOILET_DATA.find(t => t.id == toiletId);
+            if (!toilet) {
+                updateStatus('公厕信息不存在', true);
+                return;
+            }
+
+            isNavigating = true;
+            isPaused = false;
+            currentTransportMode = document.getElementById('transportMode').value;
+            const destination = [toilet.lng, toilet.lat];
+
+            // 显示导航信息
+            document.getElementById('navInfo').style.display = 'block';
+            document.getElementById('navDestination').textContent = toilet.name;
+            document.getElementById('navTransport').textContent = getTransportName(currentTransportMode);
+            document.getElementById('btnPauseNavigation').style.display = 'block';
+            document.getElementById('navProgress').style.display = 'block';
+            document.getElementById('navProgressBar').style.width = '0%';
+
+            // 获取真实道路路径
+            getRealRoadPath(currentLocation, destination, (path) => {
+                navPath = path;
+                navCurrentIndex = 0;
+                navProgress = 0;
+
+                // 绘制导航路线
+                drawNavigationRoute(path);
+
+                // 创建导航人物
+                createNavCharacter(currentLocation);
+
+                // 计算距离和时间
+                const distance = calculateDistance(currentLocation, destination);
+                const time = calculateTravelTime(distance, currentTransportMode);
+                document.getElementById('navDistance').textContent = formatDistance(distance);
+                document.getElementById('navTime').textContent = formatTime(time);
+
+                // 开始动画
+                animateNavigation();
+
+                updateStatus(`开始${getTransportName(currentTransportMode)}导航到: ${toilet.name}`);
+            });
+        }
+
+        // 12. 绘制导航路线（支持多路径点）
+        function drawNavigationRoute(path) {
+            if (navigationLine) {
+                map.remove(navigationLine);
+            }
+
+            navigationLine = new AMap.Polyline({
+                path: path,
+                strokeColor: "#3366FF",
+                strokeWeight: 6,
+                strokeOpacity: 0.8,
+                strokeStyle: "solid",
+                zIndex: 10 // 确保路线在最上层
+            });
+
+            map.add(navigationLine);
+            map.setFitView([navigationLine], { padding: [50, 50, 50, 50] });
+        }
+
+        // 13. 新增：暂停/继续导航
+        function togglePauseNavigation() {
+            isPaused = !isPaused;
+            const btn = document.getElementById('btnPauseNavigation');
+
+            if (isPaused) {
+                btn.innerHTML = '<<i>▶️</</i> 继续导航';
+                updateStatus('导航已暂停');
+                if (navAnimationFrame) {
+                    cancelAnimationFrame(navAnimationFrame);
+                }
+            } else {
+                btn.innerHTML = '<<i>⏸️</</i> 暂停导航';
+                updateStatus(`继续${getTransportName(currentTransportMode)}导航`);
+                animateNavigation();
+            }
+        }
+
+        // 14. 新增：完成导航
+        function finishNavigation() {
+            isNavigating = false;
+            updateStatus(`导航完成！已到达${document.getElementById('navDestination').textContent}`);
+
+            // 显示到达提示
+            infoWindow.setContent(`
+                <div style="padding: 12px; text-align: center;">
+                    <div style="font-size: 18px; color: #27ae60; margin-bottom: 8px;">🎉 导航完成！</div>
+                    <div style="color: #555;">已到达目标公厕</div>
+                </div>
+            `);
+            infoWindow.open(map, navPath[navPath.length - 1]);
+
+            // 清除动画和进度条
+            if (navAnimationFrame) {
+                cancelAnimationFrame(navAnimationFrame);
+            }
+            document.getElementById('navProgress').style.display = 'none';
+            document.getElementById('btnPauseNavigation').style.display = 'none';
+        }
+
+        // 15. 搜索城市公厕
+        function searchCityToilets() {
+            const city = document.getElementById('searchCity').value.trim();
+            if (!city) {
+                updateStatus('请输入城市名称', true);
+                return;
+            }
+
+            updateStatus(`正在搜索${city}的公厕...`);
+
+            // 筛选该城市的公厕
+            const cityToilets = NATIONAL_TOILET_DATA.filter(toilet =>
+                toilet.city.includes(city)
+            );
+
+            if (cityToilets.length === 0) {
+                updateStatus(`未找到${city}的公厕数据`, true);
+                return;
+            }
+
+            // 清除标记并显示该城市公厕
+            clearMarkers();
+            cityToilets.forEach(toilet => {
+                const marker = createToiletMarker(toilet);
+                markers.push(marker);
+                map.add(marker);
+            });
+
+            // 如果当前显示热力图，更新热力图数据为当前城市
+            if (heatmapLayer) {
+                const heatmapData = cityToilets.map(toilet => ({
+                    lng: toilet.lng,
+                    lat: toilet.lat,
+                    count: toilet.popularity || 50
+                }));
+                // 修复：使用setData更新热力图数据
+                heatmapLayer.setData({
+                    data: heatmapData,
+                    max: 100
+                });
+                updateStatus(`找到${city} ${cityToilets.length} 个公厕，已更新热力图`);
+            } else {
+                updateStatus(`找到${city} ${cityToilets.length} 个公厕`);
+            }
+
+            // 调整地图视野
+            const lngs = cityToilets.map(t => t.lng);
+            const lats = cityToilets.map(t => t.lat);
+            const centerLng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
+            const centerLat = (Math.min(...lats) + Math.max(...lats)) / 2;
+
+            map.setCenter([centerLng, centerLat]);
+            map.setZoom(Math.min(12, CONFIG.MAX_ZOOM)); // 限制缩放级别
+        }
+
+        // ============ 从高德POI检索公厕（JSONP） ============
+        function fetchPOIPageJSONP(page = 1, timeout = 12000) {
+            return new Promise((resolve, reject) => {
+                const callbackName = 'amap_poi_cb_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+                window[callbackName] = function (data) {
+                    try {
+                        delete window[callbackName];
+                    } catch (e) {}
+                    document.body.removeChild(script);
+                    resolve(data);
+                };
+
+                const script = document.createElement('script');
+                script.src = `https://restapi.amap.com/v3/place/text?key=${CONFIG.AMAP_KEY}&keywords=%E5%8E%95%E6%89%AF&city=全国&offset=25&page=${page}&output=json&extensions=all&callback=${callbackName}`;
+                script.onerror = function (e) {
+                    try { delete window[callbackName]; } catch (ex) {}
+                    document.body.removeChild(script);
+                    reject(new Error('JSONP加载失败'));
+                };
+
+                document.body.appendChild(script);
+
+                // 超时保护
+                const to = setTimeout(() => {
+                    try { delete window[callbackName]; } catch (e) {}
+                    if (document.body.contains(script)) document.body.removeChild(script);
+                    reject(new Error('JSONP请求超时'));
+                }, timeout);
+
+                // resolve will clear timeout
+                const origResolve = resolve;
+                resolve = function (data) { clearTimeout(to); origResolve(data); };
+            });
+        }
+
+        async function fetchAllToiletsFromGaode(maxPages = 8) {
+            updateStatus('正在从高德检索公厕数据…');
+            NATIONAL_TOILET_DATA.length = 0; // 清空旧数据
+            try {
+                for (let page = 1; page <= maxPages; page++) {
+                    try {
+                        const data = await fetchPOIPageJSONP(page);
+                        if (!data || !data.pois || data.pois.length === 0) break;
+                        data.pois.forEach((poi, idx) => {
+                            const loc = (poi.location && poi.location.split) ? poi.location.split(',') : [];
+                            const lng = parseFloat(loc[0]) || 0;
+                            const lat = parseFloat(loc[1]) || 0;
+                            NATIONAL_TOILET_DATA.push({
+                                id: poi.id || (`gaode_${page}_${idx}`),
+                                name: poi.name || '未知公厕',
+                                lng, lat,
+                                city: poi.pname || poi.cityname || poi.adname || '',
+                                type: 'general',
+                                popularity: 70,
+                                address: poi.address || ''
+                            });
+                        });
+                        // 如果本页不到25条，说明最后一页
+                        if (data.pois.length < 25) break;
+                        await new Promise(r => setTimeout(r, 200)); // 小延迟，避免被限流
+                    } catch (e) {
+                        console.warn('第' + page + '页拉取失败:', e.message || e);
+                        break;
+                    }
+                }
+
+                if (NATIONAL_TOILET_DATA.length === 0) {
+                    updateStatus('未能从高德检索到公厕数据，请检查Key权限或手动重试', true);
+                    return 0;
+                }
+
+                // 填充下拉并显示
+                populateToiletSelect();
+                loadAllToilets();
+                updateStatus(`从高德成功检索 ${NATIONAL_TOILET_DATA.length} 个公厕`);
+                return NATIONAL_TOILET_DATA.length;
+            } catch (e) {
+                updateStatus('从高德检索公厕失败: ' + (e.message || e), true);
+                return 0;
+            }
+        }
+
+        function populateToiletSelect() {
+            const toiletSelect = document.getElementById('selectToilet');
+            toiletSelect.innerHTML = '<option value="">请选择目标公厕</option>';
+            NATIONAL_TOILET_DATA.forEach(toilet => {
+                const option = document.createElement('option');
+                option.value = toilet.id;
+                option.textContent = `${toilet.name} (${toilet.city}) - 热度: ${toilet.popularity}`;
+                toiletSelect.appendChild(option);
+            });
+        }
+
+        // ============ 工具函数 ============
+        function calculateDistance(point1, point2) {
+            const R = 6371000;
+            const dLat = (point2[1] - point1[1]) * Math.PI / 180;
+            const dLon = (point2[0] - point1[0]) * Math.PI / 180;
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(point1[1] * Math.PI / 180) * Math.cos(point2[1] * Math.PI / 180) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
+        }
+
+        function calculateTravelTime(distance, transport) {
+            let speed = 5; // 默认步行速度 km/h
+
+            switch (transport) {
+                case 'walking':
+                    speed = 5; // 5 km/h
+                    break;
+                case 'driving':
+                    speed = 40; // 40 km/h
+                    break;
+                case 'bicycling':
+                    speed = 15; // 15 km/h
+                    break;
+                case 'transit':
+                    speed = 20; // 20 km/h
+                    break;
+            }
+
+            const hours = distance / 1000 / speed;
+            return hours * 60; // 返回分钟数
+        }
+
+        function formatDistance(meters) {
+            if (meters < 1000) {
+                return `${Math.round(meters)}米`;
+            } else {
+                return `${(meters / 1000).toFixed(1)}公里`;
+            }
+        }
+
+        function formatTime(minutes) {
+            if (minutes < 60) {
+                return `${Math.round(minutes)}分钟`;
+            } else {
+                const hours = Math.floor(minutes / 60);
+                const mins = Math.round(minutes % 60);
+                return mins > 0 ? `${hours}小时${mins}分钟` : `${hours}小时`;
+            }
+        }
+
+        function getTransportName(mode) {
+            const names = {
+                'walking': '步行',
+                'driving': '驾车',
+                'bicycling': '骑行',
+                'transit': '公交'
+            };
+            return names[mode] || mode;
+        }
+
+        function showToiletInfo(toilet, position) {
+            const content = `
+                <div style="padding: 12px; max-width: 250px;">
+                    <div style="font-size: 16px; font-weight: bold; color: #2c3e50; margin-bottom: 8px;">
+                        ${toilet.name}
+                    </div>
+                    <div style="color: #7f8c8d; margin-bottom: 4px;">
+                        📍 ${toilet.city}
+                    </div>
+                    <div style="color: #555; margin-bottom: 4px;">
+                        🔢 ${toilet.type === 'accessible' ? '无障碍厕所' :
+                    toilet.type === 'mother' ? '母婴室' : '普通公厕'}
+                    </div>
+                    <div style="color: #e67e22; font-weight: 600;">
+                        🔥 热度值: ${toilet.popularity}/100
+                    </div>
+                </div>
+            `;
+
+            infoWindow.setContent(content);
+            infoWindow.open(map, position);
+        }
+
+        function clearMarkers() {
+            markers.forEach(marker => map.remove(marker));
+            markers = [];
+        }
+
+        function updateStatistics() {
+            const total = NATIONAL_TOILET_DATA.length;
+            const general = NATIONAL_TOILET_DATA.filter(t => t.type === 'general').length;
+            const accessible = NATIONAL_TOILET_DATA.filter(t => t.type === 'accessible').length;
+            const mother = NATIONAL_TOILET_DATA.filter(t => t.type === 'mother').length;
+            const displayed = markers.length;
+
+            document.getElementById('totalToilets').textContent = total;
+            document.getElementById('displayedToilets').textContent = displayed;
+            document.getElementById('generalCount').textContent = general;
+            document.getElementById('accessibleCount').textContent = accessible;
+            document.getElementById('motherCount').textContent = mother;
+        }
+
+        function updateStatus(message, isError = false) {
+            const statusDiv = document.getElementById('systemStatus');
+            statusDiv.textContent = message;
+            statusDiv.style.borderLeftColor = isError ? '#e74c3c' : '#3498db';
+        }
+
+        // ============ 事件绑定 ============
+        function bindEvents() {
+            // 地图模式
+            document.getElementById('btnNormalMap').onclick = () => switchMapMode('normal');
+            document.getElementById('btnSatellite').onclick = () => switchMapMode('satellite');
+            document.getElementById('btnDarkHeatmap').onclick = () => switchMapMode('heatmap');
+
+            // 热力图控制 - 新增
+            document.getElementById('btnHeatmapSmall').onclick = () => adjustHeatmapRadius(CONFIG.HEATMAP_OPTIONS.minRadius);
+            document.getElementById('btnHeatmapMedium').onclick = () => adjustHeatmapRadius(CONFIG.HEATMAP_OPTIONS.radius);
+            document.getElementById('btnHeatmapLarge').onclick = () => adjustHeatmapRadius(CONFIG.HEATMAP_OPTIONS.maxRadius);
+
+            // 位置功能
+            document.getElementById('btnSearchCity').onclick = searchCityToilets;
+            document.getElementById('btnGetLocation').onclick = getGPSLocation;
+
+            // 公厕控制
+            document.getElementById('btnShowAll').onclick = () => fetchAllToiletsFromGaode(8);
+            document.getElementById('btnClearAll').onclick = () => {
+                clearMarkers();
+                if (navigationLine) {
+                    map.remove(navigationLine);
+                    navigationLine = null;
+                }
+                // 清除热力图
+                if (heatmapLayer) {
+                    map.remove(heatmapLayer);
+                    heatmapLayer = null;
+                    document.getElementById('heatmapLegend').style.display = 'none';
+                }
+                // 清除导航动画
+                if (isNavigating) {
+                    stopNavigation();
+                }
+                document.getElementById('navInfo').style.display = 'none';
+                document.getElementById('navProgress').style.display = 'none';
+                document.getElementById('btnPauseNavigation').style.display = 'none';
+                isNavigating = false;
+                updateStatus('已清空所有显示（包括热力图）');
+                updateStatistics();
+            };
+
+            // 导航功能
+            document.getElementById('btnStartNavigation').onclick = startNavigation;
+            document.getElementById('btnPauseNavigation').onclick = togglePauseNavigation;
+            document.getElementById('btnStopNav').onclick = stopNavigation;
+
+            // 初始化公厕下拉为空（通过高德填充）
+            const toiletSelect = document.getElementById('selectToilet');
+            toiletSelect.innerHTML = '<option value="">请选择目标公厕</option>';
+        }
+
+        // 新增：停止导航
+        function stopNavigation() {
+            isNavigating = false;
+            isPaused = false;
+            if (navAnimationFrame) {
+                cancelAnimationFrame(navAnimationFrame);
+            }
+            if (navCharacterMarker) {
+                map.remove(navCharacterMarker);
+                navCharacterMarker = null;
+            }
+            if (navigationLine) {
+                map.remove(navigationLine);
+                navigationLine = null;
+            }
+            document.getElementById('navInfo').style.display = 'none';
+            document.getElementById('navProgress').style.display = 'none';
+            document.getElementById('btnPauseNavigation').style.display = 'none';
+            navPath = [];
+            navCurrentIndex = 0;
+            updateStatus('导航已结束');
+        }
+
+        // ============ 修复：系统初始化（确保容器渲染） ============
+        window.onload = function () {
+            const mapContainer = document.getElementById('mapContainer');
+            // 校验容器尺寸是否正常，强制修复
+            if (mapContainer.offsetHeight === 0 || mapContainer.offsetWidth === 0) {
+                mapContainer.style.width = '100%';
+                mapContainer.style.height = 'calc(100vh - 60px)';
+                updateStatus('容器尺寸异常，已强制修复');
+            }
+
+            if (typeof AMap !== 'undefined') {
+                initMap();
+                bindEvents();
+                // 初始化后触发一次重绘，确保地图渲染完整
+                setTimeout(() => map.resize(), 500);
+                updateStatus('全国公厕系统已就绪（增强热力图版）');
+            } else {
+                updateStatus('高德地图API加载失败，请检查网络连接', true);
+                // 尝试重试加载
+                setTimeout(() => location.reload(), 3000);
+            }
+        };
+    </script>
+</body>
+
+</html>
