@@ -4,9 +4,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>全国公厕智能导航系统</title>
-    <!-- AMap JS API will be loaded dynamically using CONFIG.AMAP_JS_KEY and CONFIG.AMAP_JS_SECURITY -->
-    <!-- AMap JS and its security will be set dynamically by loadAMapScript at runtime. -->
+    <title>全国公厕智能导航系统 (联动修复版)</title>
+
+    <script type="text/javascript">
+        window._AMapSecurityConfig = {
+            securityJsCode: "cef502ee110286b4d90dcb9c4ad448a0",
+        };
+    </script>
+
+    <script
+        src="https://webapi.amap.com/maps?v=2.0&key=0d1ee76dc31d7bf28161661e7da64aa2&plugin=AMap.ToolBar,AMap.Scale,AMap.HeatMap,AMap.Driving,AMap.Walking,AMap.Riding,AMap.PlaceSearch,AMap.Geolocation,AMap.MoveAnimation"></script>
+
     <style>
         * {
             margin: 0;
@@ -23,7 +31,6 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
 
-        /* 系统头部 */
         .system-header {
             height: 60px;
             background: rgba(255, 255, 255, 0.95);
@@ -42,26 +49,6 @@
             color: #2c3e50;
             display: flex;
             align-items: center;
-
-            /* Center the title horizontally within the header */
-            position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
-            justify-content: center;
-
-            /* Prevent overlap with controls: truncate long titles */
-            max-width: calc(100% - 240px);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            padding: 0 12px;
-            z-index: 1010;
-        }
-
-        /* Make header elements responsive on small screens */
-        @media (max-width: 480px) {
-            .system-title { font-size: 16px; max-width: calc(100% - 140px); }
-            .system-version { display: none; }
         }
 
         .system-title i {
@@ -76,21 +63,14 @@
             background: #f8f9fa;
             padding: 5px 15px;
             border-radius: 20px;
-            position: absolute;
-            right: 20px;
-            top: 50%;
-            transform: translateY(-50%);
-            z-index: 1011;
         }
 
-        /* 地图容器 - 修复Canvas性能警告 */
         #mapContainer {
             width: 100%;
             height: calc(100vh - 60px);
             position: relative;
         }
 
-        /* 左侧控制面板 */
         .left-panel {
             position: absolute;
             top: 20px;
@@ -103,17 +83,15 @@
             z-index: 100;
             border: 1px solid rgba(255, 255, 255, 0.2);
             backdrop-filter: blur(5px);
+            max-height: 90vh;
+            overflow-y: auto;
         }
 
-        /* 右侧导航面板（可滑动） */
         .right-panel {
             position: absolute;
             top: 20px;
             right: 20px;
             width: 300px;
-            max-height: calc(100vh - 40px);
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch; /* iOS 平滑滚动 */
             background: rgba(255, 255, 255, 0.95);
             border-radius: 12px;
             padding: 20px;
@@ -121,17 +99,6 @@
             z-index: 100;
             border: 1px solid rgba(255, 255, 255, 0.2);
             backdrop-filter: blur(5px);
-        }
-
-        /* 使面板内的标题或重要信息可固定在顶部，便于观察 */
-        .right-panel .sticky {
-            position: -webkit-sticky;
-            position: sticky;
-            top: 0;
-            background: rgba(255,255,255,0.95);
-            padding-bottom: 8px;
-            z-index: 10;
-            border-bottom: 1px solid #eee;
         }
 
         .panel-section {
@@ -154,12 +121,6 @@
             align-items: center;
         }
 
-        .section-title i {
-            margin-right: 8px;
-            color: #3498db;
-        }
-
-        /* 输入框和选择器样式 */
         .input-group {
             margin-bottom: 15px;
         }
@@ -183,14 +144,16 @@
             background: #f8fafc;
         }
 
-        .input-field:focus,
-        .select-field:focus {
-            outline: none;
-            border-color: #3498db;
-            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        .clickable-input {
+            cursor: pointer;
+            background-color: #eef2f7;
         }
 
-        /* 按钮样式 */
+        .clickable-input:hover {
+            border-color: #3498db;
+            background-color: #fff;
+        }
+
         .btn-group {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -198,7 +161,6 @@
             margin: 10px 0;
         }
 
-        /* 热力图控制按钮组 - 新增 */
         .heatmap-controls {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
@@ -225,29 +187,14 @@
             color: white;
         }
 
-        .btn-primary:hover {
-            background: linear-gradient(135deg, #2980b9, #2573a7);
-            transform: translateY(-1px);
-        }
-
         .btn-secondary {
             background: linear-gradient(135deg, #9b59b6, #8e44ad);
             color: white;
         }
 
-        .btn-secondary:hover {
-            background: linear-gradient(135deg, #8e44ad, #7d3c98);
-            transform: translateY(-1px);
-        }
-
         .btn-success {
             background: linear-gradient(135deg, #2ecc71, #27ae60);
             color: white;
-        }
-
-        .btn-success:hover {
-            background: linear-gradient(135deg, #27ae60, #219653);
-            transform: translateY(-1px);
         }
 
         .btn-warning {
@@ -260,7 +207,6 @@
             color: white;
         }
 
-        /* 热力图控制按钮样式 - 新增 */
         .btn-heatmap {
             background: linear-gradient(135deg, #e67e22, #d35400);
             color: white;
@@ -268,12 +214,6 @@
             padding: 8px 5px;
         }
 
-        .btn-heatmap:hover {
-            background: linear-gradient(135deg, #d35400, #c0392b);
-            transform: translateY(-1px);
-        }
-
-        /* 状态显示 */
         .status-panel {
             margin-top: 15px;
             padding: 12px;
@@ -284,7 +224,6 @@
             color: #2c3e50;
         }
 
-        /* 导航信息面板 */
         .navigation-info {
             background: rgba(255, 255, 255, 0.95);
             border-radius: 8px;
@@ -317,28 +256,27 @@
             font-weight: bold;
         }
 
-        /* 热力图图例（移入侧边栏以防遮挡） */
         .heatmap-legend {
-            position: relative;
-            background: rgba(255, 255, 255, 0.95);
+            position: absolute;
+            bottom: 80px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.9);
             border-radius: 8px;
-            padding: 8px 12px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
-            z-index: 10;
+            padding: 10px 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 100;
             display: none;
         }
 
-        .legend-title {
-            font-size: 12px;
-            color: #2c3e50;
-            margin-bottom: 6px;
-            font-weight: 600;
-            text-align: center;
-        }
+        /* WMS overlay controls and overlay styling */
+        .wms-controls .input-label { font-size:13px; color:#3498db; margin-bottom:5px; font-weight:500; }
+        .wms-controls .input-field { padding:8px 10px; border-radius:6px; font-size:13px; }
+        .wms-overlay { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:50; }
+        .wms-overlay img { width:100%; height:100%; display:block; }
 
         .legend-gradient {
-            width: 100%;
-            height: 12px;
+            width: 200px;
+            height: 20px;
             background: linear-gradient(to right, rgba(128, 0, 128, 0.7), rgba(255, 0, 0, 0.8), rgba(255, 165, 0, 0.9), rgba(255, 255, 0, 1), rgba(255, 255, 255, 1));
             border-radius: 4px;
             margin-bottom: 5px;
@@ -351,39 +289,6 @@
             color: #7f8c8d;
         }
 
-        .nav-character {
-            width: 40px;
-            height: 40px;
-            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="30" r="20" fill="%23ff6b6b"/><path d="M30,70 Q50,90 70,70 L50,50 Z" fill="%234ecdc4"/><circle cx="40" cy="25" r="5" fill="white"/><circle cx="60" cy="25" r="5" fill="white"/><path d="M45,35 Q50,40 55,35" stroke="white" stroke-width="3" fill="none"/></svg>') no-repeat center;
-            background-size: contain;
-            border-radius: 50%;
-            transition: transform 0.1s linear;
-            z-index: 1000;
-            pointer-events: none;
-        }
-
-        .nav-progress {
-            position: absolute;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 80%;
-            max-width: 600px;
-            height: 8px;
-            background: rgba(255, 255, 255, 0.3);
-            border-radius: 4px;
-            z-index: 1000;
-            overflow: hidden;
-        }
-
-        .nav-progress-bar {
-            height: 100%;
-            background: linear-gradient(90deg, #3498db, #2ecc71);
-            width: 0%;
-            transition: width 0.3s linear;
-        }
-
-        /* 响应式设计 */
         @media (max-width: 1200px) {
             .right-panel {
                 display: none;
@@ -393,2391 +298,857 @@
                 width: 95%;
                 left: 2.5%;
             }
-
-            .heatmap-legend {
-                width: 90%;
-                left: 5%;
-            }
         }
     </style>
 </head>
 
 <body>
-    <!-- 系统头部 -->
     <div class="system-header">
-        <div class="system-title">
-            <<i>🚽</< /i>
-                全国公厕智能导航系统
-        </div>
-        <div class="system-version">
-            v2.2 - 修复热力图&导航动画
-        </div>
+        <div class="system-title"><i>🚽</i>全国公厕智能导航系统</div>
+        <div class="system-version">v3.2 - 完美联动版</div>
     </div>
 
-    <!-- 地图容器 -->
     <div id="mapContainer"></div>
 
-    <!-- 导航进度条 -->
-    <div class="nav-progress" id="navProgress" style="display: none;">
-        <div class="nav-progress-bar" id="navProgressBar"></div>
+    <div class="heatmap-legend" id="heatmapLegend">
+        <div class="legend-title">公厕热度分布</div>
+        <div class="legend-gradient"></div>
+        <div class="legend-labels"><span>低</span><span>中</span><span>高</span></div>
     </div>
 
-
-
-    <!-- 左侧控制面板 -->
     <div class="left-panel">
-        <!-- 地图模式切换 -->
         <div class="panel-section">
-            <div class="section-title">
-                <<i>🗺️</< /i>
-                    地图模式
-            </div>
+            <div class="section-title"><i>🗺️</i>地图模式</div>
             <div class="btn-group">
-                <button class="btn btn-primary" id="btnNormalMap">
-                    <<i>🌐</< /i>
-                        标准地图
-                </button>
-                <button class="btn btn-secondary" id="btnSatellite">
-                    <<i>🛰️</< /i>
-                        卫星影像
-                </button>
-                <button class="btn btn-warning" id="btnDarkHeatmap">
-                    <i>🔥</i>
-                        深色热力图
-                </button>
-                <label style="display:inline-flex; align-items:center; margin-left:8px; font-size:12px;">
-                    <input type="checkbox" id="chkQgisWms" style="margin-right:6px;" /> 显示 QGIS WMS 图层
-                </label>
+                <button class="btn btn-primary" id="btnNormalMap"><i>🌐</i>标准地图</button>
+                <button class="btn btn-secondary" id="btnSatellite"><i>🛰️</i>卫星影像</button>
+                <button class="btn btn-warning" id="btnDarkHeatmap"><i>🔥</i>深色热力图</button>
             </div>
-
-            <!-- 热力图控制按钮组 - 新增 -->
             <div class="heatmap-controls">
-                <button class="btn btn-heatmap" id="btnHeatmapSmall">
-                    <<i>🔍</i>
-                        小半径
-                </button>
-                <button class="btn btn-heatmap" id="btnHeatmapMedium">
-                    <<i>🔍</i>
-                        中半径
-                </button>
-                <button class="btn btn-heatmap" id="btnHeatmapLarge">
-                    <<i>🔍</i>
-                        大半径
-                </button>
-            </div>
-            <!-- 热力图值显示（显示在小半径下面） -->
-            <div id="heatmapValue" style="margin-top:6px; font-size:13px; color:#2c3e50; display:none;">已显示热力图 - 半径: 0px</div>
-
-            <!-- 热力图图例（移至侧边栏以防遮挡地图） -->
-            <div class="heatmap-legend" id="heatmapLegend" style="display:none; margin-top:8px;">
-                <div class="legend-title">公厕热度分布</div>
-                <div class="legend-gradient" style="width:100%; height:12px; border-radius:4px; margin:6px 0;"></div>
-                <div class="legend-labels" style="display:flex; justify-content:space-between; font-size:12px; color:#666;">
-                    <span>低热度</span>
-                    <span>中热度</span>
-                    <span>高热度</span>
-                </div>
+                <button class="btn btn-heatmap" id="btnHeatmapSmall"><i>🔍</i>小半径</button>
+                <button class="btn btn-heatmap" id="btnHeatmapMedium"><i>🔍</i>中半径</button>
+                <button class="btn btn-heatmap" id="btnHeatmapLarge"><i>🔍</i>大半径</button>
             </div>
         </div>
 
-        <!-- 位置搜索 -->
         <div class="panel-section">
-            <div class="section-title">
-                <<i>📍</< /i>
-                    位置搜索
-            </div>
+            <div class="section-title"><i>📍</i>位置搜索</div>
             <div class="input-group">
                 <label class="input-label">搜索城市或区域</label>
-                <input type="text" class="input-field" id="searchCity" placeholder="输入城市名称，如：北京、上海" value="北京">
+                <input type="text" class="input-field" id="searchCity" placeholder="输入城市名称，如：北京" value="北京市">
             </div>
-            <button class="btn btn-primary" id="btnSearchCity" style="width: 100%; margin-bottom: 10px;">
-                <<i>🔍</< /i>
-                    搜索区域公厕
-            </button>
-            <button class="btn btn-secondary" id="btnGetLocation" style="width: 100%;">
-                <<i>📍</< /i>
-                    获取当前位置
-            </button>
+            <button class="btn btn-primary" id="btnSearchCity"
+                style="width: 100%; margin-bottom: 10px;"><i>🔍</i>搜索区域公厕</button>
         </div>
 
-        <!-- 公厕显示控制 -->
         <div class="panel-section">
-            <div class="section-title">
-                <<i>🚽</< /i>
-                    公厕显示
-            </div>
+            <div class="section-title"><i>🚽</i>公厕显示</div>
             <div class="btn-group">
-                <button class="btn btn-primary" id="btnShowAll">
-                    <i>🏠</i>
-                        显示全部
-                </button>
-                <button class="btn btn-outline-info" id="btnTestKeys" title="测试 JS Key 与 REST Key">
-                    <i>🧪</i>
-                        测试Key
-                </button>
-
-                <!-- 可选：使用 REST Geocoder 补全（前端会使用 REST Key） -->
-                <label style="display:inline-flex; align-items:center; margin-left:8px; font-size:12px;">
-                    <input type="checkbox" id="chkAllowRestGeocode" style="margin-right:6px;" />
-                    允许使用 REST Geocoder 补全（会使用 REST Key）
-                </label>
-                <button class="btn btn-outline-secondary" id="btnRunRestGeocode" title="手动使用 REST 补全" style="margin-left:8px;">
-                    <i>🔁</i>
-                        使用 REST 补全（手动）
-                </button>
-
-                <button class="btn btn-danger" id="btnClearAll">
-                    <i>🗑️</i>
-                        清空显示
-                </button>
+                <button class="btn btn-primary" id="btnShowAll"><i>🏠</i>搜索附近/显示全部</button>
+                <button class="btn btn-danger" id="btnClearAll"><i>🗑️</i>清空显示</button>
             </div>
-            <!-- 调试面板：显示跳过与补全统计 -->
-            <div id="debugPanel" style="margin-top:8px; padding:8px; border-left:3px solid #f1c40f; background:#fffef7; display:none; font-size:12px;">
-                <div id="debugSummary">调试信息：无</div>
-                <div id="debugDetails" style="margin-top:6px; max-height:120px; overflow:auto; white-space:pre-wrap;"></div>
-
-                <!-- WMS 探测结果区 -->
-                <div id="wmsProbePanel" style="margin-top:8px; padding-top:8px; border-top:1px dashed #ddd; display:block;">
-                    <div id="wmsProbeSummary" style="font-weight:600;">WMS 探测：未运行</div>
-                    <div id="wmsProbeDetails" style="margin-top:6px; max-height:140px; overflow:auto; white-space:pre-wrap; font-size:12px; color:#333;"></div>
-                    <div style="margin-top:6px; display:flex; gap:6px; align-items:center;">
-                        <label style="font-size:12px; display:flex; align-items:center; gap:6px;"><input type="checkbox" id="chkUseWmsProxy"> 使用代理</label>
-                        <button class="btn" id="btnCopyWmsLog" style="font-size:12px; padding:4px 8px;">复制探测日志</button>
-                    </div>
-                    <input type="text" id="txtWmsProxyUrl" placeholder="代理前缀（例如 https://your-proxy.example/tiles?url=）" style="width:100%;margin-top:6px;font-size:12px;" />
-                </div>
-            </div> 
         </div>
 
-        <!-- 系统状态 -->
-        <div class="status-panel" id="systemStatus">
-            系统初始化中...
+        <div class="panel-section">
+            <div class="section-title"><i>🛰️</i>WMS 图层（QGIS Cloud）</div>
+            <div class="input-group wms-controls">
+                <label class="input-label">WMS 基础 URL</label>
+                <input type="text" class="input-field" id="wmsBase" value="https://wms.qgiscloud.com/smilejxl/fx/" />
+            </div>
+            <div class="input-group wms-controls">
+                <label class="input-label">图层名 LAYERS</label>
+                <select class="select-field" id="wmsLayerSelect">
+                    <option value="fx">fx（默认）</option>
+                    <option value="中国省线">中国省线</option>
+                    <option value="中国省">中国省</option>
+                    <option value="__other__">其他…</option>
+                </select>
+                <input type="text" class="input-field" id="wmsLayerName" value="fx" style="margin-top:8px; display:none;" placeholder="输入自定义图层名，比如：layer_name" />
+            </div>
+            <div class="input-group wms-controls">
+                <label class="input-label">不透明度</label>
+                <input type="range" id="wmsOpacity" min="0" max="1" step="0.05" value="0.8" style="width:100%;" />
+            </div>
+            <div class="input-group wms-controls">
+                <label class="input-label"><input type="checkbox" id="wmsUseProxy" style="margin-right:8px;">使用代理（解决 CORS 问题）</label>
+                <div style="font-size:12px; color:#7f8c8d;">勾选后会通过公共 proxy 尝试加载 WMS（可能受限）。</div>
+            </div>
+            <div class="btn-group" style="margin-top:8px;">
+                <button class="btn btn-primary" id="btnToggleWMS"><i>🌐</i>切换 WMS 图层</button>
+                <button class="btn btn-secondary" id="btnRefreshWMS"><i>🔄</i>刷新 WMS</button>
+            </div>
+        </div>
+
+        <div class="status-panel" id="systemStatus">系统初始化中...</div>
+
+        <div class="status-panel" style="margin-top:10px;">
+            <div>当前显示公厕: <strong id="displayedToilets">0</strong></div>
         </div>
     </div>
 
-    <!-- 右侧：导航控制面板 -->
     <div class="right-panel">
-        <div class="sticky" id="heatmapInfo" style="font-size:12px; color:#333; margin-bottom:8px; display:block;">热力图：未启用</div>
-        <!-- 导航设置 -->
         <div class="panel-section">
-            <div class="section-title">
-                <<i>🧭</< /i>
-                    导航设置
-            </div>
+            <div class="section-title"><i>🧭</i>导航设置</div>
             <div class="input-group">
-                <label class="input-label">当前位置</label>
-                <input type="text" class="input-field" id="currentPosition" placeholder="点击地图或自动获取" readonly>
+                <label class="input-label">当前位置 (定位失败请点击选点)</label>
+                <input type="text" class="input-field clickable-input" id="currentPosition"
+                    placeholder="🖱️ 点击此处，手动在地图选点" readonly title="定位失败时，点击此处手动在地图上选择位置">
             </div>
             <div class="input-group">
                 <label class="input-label">目标公厕</label>
                 <select class="select-field" id="selectToilet">
-                    <option value="">请选择目标公厕</option>
+                    <option value="">请先搜索公厕</option>
                 </select>
             </div>
             <div class="input-group">
                 <label class="input-label">交通工具</label>
                 <select class="select-field" id="transportMode">
-                    <option value="walking">步行</option>
-                    <option value="driving" selected>驾车</option>
-                    <option value="bicycling">骑行</option>
-                    <option value="transit">公交</option>
+                    <option value="Walking">步行</option>
+                    <option value="Driving" selected>驾车</option>
+                    <option value="Riding">骑行</option>
                 </select>
             </div>
-            <button class="btn btn-success" id="btnStartNavigation" style="width: 100%;">
-                <<i>🚀</< /i>
-                    开始导航
-            </button>
-            <button class="btn btn-warning" id="btnPauseNavigation"
-                style="width: 100%; margin-top: 10px; display: none;">
-                <<i>⏸️</< /i>
-                    暂停导航
-            </button>
+            <div class="input-group">
+                <label class="input-label"><input type="checkbox" id="showCongestion" style="margin-right:8px;">显示道路拥堵</label>
+                <div style="font-size:12px; color:#7f8c8d;">勾选后，导航路线会按拥堵程度用颜色显示。</div>
+            </div>
+            <button class="btn btn-success" id="btnStartNavigation" style="width: 100%;"><i>🚀</i>开始导航</button>
         </div>
 
-        <!-- 导航信息 -->
         <div class="navigation-info" id="navInfo" style="display: none;">
-            <div class="nav-item">
-                <span>目的地：</span>
-                <span class="nav-value" id="navDestination">-</span>
-            </div>
-            <div class="nav-item">
-                <span>距离：</span>
-                <span class="nav-distance" id="navDistance">-</span>
-            </div>
-            <div class="nav-item">
-                <span>预计时间：</span>
-                <span class="nav-time" id="navTime">-</span>
-            </div>
-            <div class="nav-item">
-                <span>交通工具：</span>
-                <span class="nav-value" id="navTransport">-</span>
-            </div>
-            <button class="btn btn-danger" id="btnStopNav" style="width: 100%; margin-top: 10px;">
-                <<i>⏹️</< /i>
-                    结束导航
-            </button>
-        </div>
-
-        <!-- 公厕统计 -->
-        <div class="panel-section">
-            <div class="section-title">
-                <<i>📊</< /i>
-                    公厕统计
-            </div>
-            <div class="status-panel">
-                <div>全国公厕总数: <strong id="totalToilets">0</strong></div>
-                <div>当前显示: <strong id="displayedToilets">0</strong></div>
-                <div>普通公厕: <span style="color:#3498db;" id="generalCount">0</span></div>
-                <div>无障碍: <span style="color:#e74c3c;" id="accessibleCount">0</span></div>
-                <div>母婴室: <span style="color:#9b59b6;" id="motherCount">0</span></div>
-            </div>
+            <div class="nav-item"><span>目的地：</span><span class="nav-value" id="navDestination">-</span></div>
+            <div class="nav-item"><span>距离：</span><span class="nav-distance" id="navDistance">-</span></div>
+            <div class="nav-item"><span>预计时间：</span><span class="nav-time" id="navTime">-</span></div>
+            <div id="navSteps" class="nav-steps" style="margin-top:10px; max-height:180px; overflow:auto; font-size:13px; display:none;"></div>
+            <button class="btn btn-danger" id="btnStopNav" style="width: 100%; margin-top: 10px;"><i>⏹️</i>结束导航</button>
         </div>
     </div>
 
     <script>
-        // ============ 系统配置 ============
-        const CONFIG = {
-            AMAP_JS_KEY: '3da096629cc77da916196115d45f9d63', // 高德Web端JS API Key（仅用于 webapi ）
-            AMAP_JS_SECURITY: '99e3954b4b466ebbbe24118338ef6c91', // JS API 安全密钥（仅JS API使用）
-            AMAP_REST_KEY: '9666a97081858f91bc01602ef209e226', // 高德Web服务 REST API Key（仅用于 restapi ）
-
-            DEFAULT_CENTER: [116.397428, 39.90923], // 北京中心
-            DEFAULT_ZOOM: 5, // 全国视图
-            MAX_ZOOM: 16, // 卫星图最大缩放级别（避免空白）
-            HEATMAP_OPTIONS: {
-                radius: 20,  // 热力图默认半径
-                minRadius: 10, // 最小半径
-                maxRadius: 30, // 最大半径
-                opacity: [0, 0.9],
-                gradient: {  // 深色热力图配色
-                    0.0: 'rgba(0, 0, 0, 0)',
-                    0.1: 'rgba(128, 0, 128, 0.7)',
-                    0.3: 'rgba(255, 0, 0, 0.8)',
-                    0.5: 'rgba(255, 165, 0, 0.9)',
-                    0.7: 'rgba(255, 255, 0, 1)',
-                    1.0: 'rgba(255, 255, 255, 1)'
-                }
-            },
-            ANIMATION_SPEED: { // 不同交通工具的动画速度（像素/毫秒）
-                walking: 0.5,
-                driving: 2,
-                bicycling: 1,
-                transit: 1.5
-            }
-        };
-
-        // 动态加载 AMap JS（使用 CONFIG.AMAP_JS_KEY + CONFIG.AMAP_JS_SECURITY）
-        function loadAMapScript(callback) {
-            if (!CONFIG || !CONFIG.AMAP_JS_KEY) {
-                const err = new Error('AMAP_JS_KEY 未配置');
-                if (callback) callback(err);
-                return;
-            }
-            if (typeof AMap !== 'undefined') {
-                if (callback) callback();
-                return;
-            }
-
-            // 避免重复注入
-            if (document.getElementById('amap-js-script')) {
-                const existing = document.getElementById('amap-js-script');
-                existing.addEventListener('load', () => { if (callback) callback(); });
-                existing.addEventListener('error', () => { if (callback) callback(new Error('AMap script load error')); });
-                return;
-            }
-
-            // 在插入脚本前设置安全密钥（仅 JS API 使用）
-            if (CONFIG.AMAP_JS_SECURITY) {
-                try { window._AMapSecurityConfig = { securityJsCode: CONFIG.AMAP_JS_SECURITY }; } catch (e) { console.warn('无法设置 _AMapSecurityConfig:', e); }
-            }
-
-            const s = document.createElement('script');
-            s.id = 'amap-js-script';
-            s.src = `https://webapi.amap.com/maps?v=2.0&key=${CONFIG.AMAP_JS_KEY}&plugin=AMap.ToolBar,AMap.Scale,AMap.HeatMap,AMap.Driving`;
-            s.onload = () => { if (callback) callback(); };
-            s.onerror = (e) => { if (callback) callback(new Error('AMap script load failed')); };
-            document.head.appendChild(s);
-        }
-
-        // ============ 全国公厕数据（来源：高德POI检索） ============
-        // 运行时通过高德POI检索填充，避免使用本地静态数据
-        const NATIONAL_TOILET_DATA = [];
-
-        // ============ 全局变量 ============
+        // 全局变量
+        const GOOGLE_API_KEY = 'YOUR_GOOGLE_API_KEY_HERE'; // 替换为你的 Google API Key；留默认将回退到高德导航
+        const WMS_BASE = 'https://wms.qgiscloud.com/smilejxl/fx/'; // QGIS Cloud WMS 基础 URL（可覆盖）
         let map = null;
-        let markers = [];
-        let currentLocation = null;
-        let currentLocationMarker = null;
+        let placeSearch = null;
+        let currentMarkers = [];
         let heatmapLayer = null;
         let infoWindow = null;
-        let navigationLine = null;
-        let isNavigating = false;
-        let isPaused = false;
-        let currentTransportMode = 'driving';
-        let navAnimationFrame = null;
-        let navPath = []; // 导航路径坐标数组
-        let navCharacterMarker = null; // 导航人物标记
-        let navCurrentIndex = 0; // 当前动画位置索引
-        let navProgress = 0; // 导航进度（0-100）
-        let currentHeatmapRadius = CONFIG.HEATMAP_OPTIONS.radius; // 当前热力图半径
-        let drivingService = null; // AMap.Driving 实例引用（用于清理自动添加的路线覆盖）
-        // QGIS Cloud WMS 支持
-        let qgisWmsLayer = null;
-        let isQgisWmsEnabled = false;
-        const QGIS_WMS_BASE = 'https://wms.qgiscloud.com/smilejxl/fx/';
-        function getDefaultWmsLayerName() {
-            try {
-                const url = new URL(QGIS_WMS_BASE);
-                const parts = url.pathname.split('/').filter(Boolean);
-                return parts.length ? parts[parts.length - 1] : 'fx';
-            } catch (e) { return 'fx'; }
-        }
-        // WMS 自动检测与配置信息
-        const wmsConfig = {
-            endpoint: null, // base URL that works (candidate)
-            version: null, // '1.3.0' or '1.1.1'
-            crs: null // 'EPSG:3857' or 'EPSG:4326'
-        }; 
+        // WMS overlay state
+        let wmsOverlayEl = null;
+        let wmsImgEl = null;
+        let wmsEnabled = false;
+        let _wmsPrevBlobUrl = null;
+        const _wmsProxies = [
+            'https://images.weserv.nl/?url=', // image proxy: expects url without protocol
+            'https://thingproxy.freeboard.io/fetch/',
+            'https://api.allorigins.win/raw?url='
+        ];
 
-        // tile -> bbox (EPSG:3857) helper
-        function tileXYZToBBox3857(x, y, z) {
-            const tileSize = 256;
-            const initialResolution = 2 * Math.PI * 6378137 / tileSize; // meters per pixel at zoom 0
-            const originShift = 2 * Math.PI * 6378137 / 2.0;
+        // 导航与定位相关
+        let navPathLine = null;
+        let navMarker = null;
+        let navStartMarker = null;
+        let navEndMarker = null;
+        let navStepMarkers = [];
+        let currentPos = null;
+        let selectedToilet = null;
+        let currentLocationMarker = null;
+        let isSelectingStart = false;
 
-            function pixelsToMeters(px, py, zoom) {
-                const res = initialResolution / Math.pow(2, zoom);
-                const mx = px * res - originShift;
-                const my = py * res - originShift;
-                return [mx, my];
-            }
+        window.onload = function () {
+            initMap();
+        };
 
-            // tile x,y to pixel coords
-            const minPx = x * tileSize;
-            const maxPx = (x + 1) * tileSize;
-            const minPy = (y + 1) * tileSize;
-            const maxPy = y * tileSize;
-
-            const min = pixelsToMeters(minPx, minPy, z);
-            const max = pixelsToMeters(maxPx, maxPy, z);
-            // return [minx, miny, maxx, maxy]
-            return [min[0], min[1], max[0], max[1]];
-        }
-
-        // heatmap 更新节流
-        let _heatmapUpdateTimer = null;
-        // 地图交互状态（用于在交互时延迟热力图更新）
-        let mapIsInteracting = false;
-        let _pendingHeatmapData = null;
-
-        // ============ 修复：地图初始化 ============
         function initMap() {
-            console.log('正在初始化地图系统...');
-
             try {
-                // 检查高德地图API是否可用
-                if (typeof AMap === 'undefined') {
-                    updateStatus('高德地图API加载失败', true);
-                    return;
-                }
-
-                // 初始化地图 - 修复Canvas性能警告 + 适配卫星图
                 map = new AMap.Map('mapContainer', {
-                    zoom: CONFIG.DEFAULT_ZOOM,
-                    center: CONFIG.DEFAULT_CENTER,
-                    viewMode: '2D', // 改为2D视图，提升卫星图兼容性
-                    mapStyle: 'amap://styles/normal',
-                    resizeEnable: true,
-                    maxZoom: CONFIG.MAX_ZOOM, // 限制最大缩放级别
-                    renderOptions: {
-                        willReadFrequently: true  // 修复Canvas性能警告
-                    }
+                    zoom: 14,
+                    center: [116.397428, 39.90923],
+                    viewMode: '3D',
+                    resizeEnable: true
                 });
 
-                // 初始加载标准地图瓦片（确保默认显示正常）
-                const normalLayer = new AMap.TileLayer({
-                    url: 'https://webst0{1,2,3,4}.is.autonavi.com/appmaptile?style=7&x={x}&y={y}&z={z}&key=' + CONFIG.AMAP_JS_KEY,
-                    zIndex: 1
-                });
-                map.add(normalLayer);
+                if (AMap.ToolBar) map.addControl(new AMap.ToolBar());
+                if (AMap.Scale) map.addControl(new AMap.Scale());
 
-                // 新增：监听地图加载错误（定位卫星图权限问题）
-                map.on('error', (err) => {
-                    console.error('地图加载错误:', err);
-                    if (err.info.includes('SERVICE_NOT_AVAILABLE')) {
-                        updateStatus('卫星影像服务未开通，已自动切换至标准地图', true);
-                        switchMapMode('normal');
-                    } else if (err.info.includes('INVALID_USER_KEY')) {
-                        updateStatus('API Key无效，请更换正确的Web端JS API Key', true);
-                    } else if (err.info.includes('OVER_QUERY_LIMIT')) {
-                        updateStatus('API调用次数超限，请稍后再试', true);
-                    }
-                });
+                infoWindow = new AMap.InfoWindow({ offset: new AMap.Pixel(0, -30) });
 
-                // 修复：安全的控件加载
-                addMapControlsSafely();
-
-                // 创建信息窗口
-                infoWindow = new AMap.InfoWindow({
-                    offset: new AMap.Pixel(0, -30),
-                    closeWhenClickMap: true
-                });
-
-                // 绑定地图点击事件
-                map.on('click', function (e) {
-                    setCurrentPosition([e.lnglat.getLng(), e.lnglat.getLat()]);
-                });
-
-                // 监听地图交互（拖动、缩放）以便延迟热力图更新，减少 canvas readback
-                map.on('movestart', function () { mapIsInteracting = true; });
-                map.on('zoomstart', function () { mapIsInteracting = true; });
-                map.on('moveend', function () { mapIsInteracting = false; applyPendingHeatmapIfAny(); try { updateHeatmapInfo(); } catch(e){} });
-                map.on('zoomend', function () { mapIsInteracting = false; applyPendingHeatmapIfAny(); try { updateHeatmapInfo(); } catch(e){} });
-
-                // 不使用本地静态数据，点击“显示全部”从高德POI检索公厕数据
-                updateStatus('就绪：请点击“显示全部”从高德POI检索公厕数据');
-                console.info('地图 renderOptions 已启用 willReadFrequently=true，用于减少 canvas readback 性能警告（若仍出现浏览器警告可忽略）');
-
-                // 更新统计信息（初始均为0）
-                updateStatistics();
-
-                updateStatus('全国公厕系统已启动，支持卫星影像切换和增强热力图');
-                console.log('地图系统初始化成功！');
-                // 初始化 WMS 面板事件绑定
-                try { setupWmsUiBindings(); } catch (e) { console.debug('setupWmsUiBindings 调用失败', e); }
-
-            } catch (error) {
-                console.error('地图初始化失败:', error);
-                updateStatus('地图加载失败: ' + error.message, true);
-            }
-        }
-
-        // ============ 修复：安全的控件加载 ============
-        function addMapControlsSafely() {
-            // 添加比例尺
-            if (window.AMap && AMap.Scale) {
-                try {
-                    map.addControl(new AMap.Scale({
-                        position: 'LB',
-                        visible: true
-                    }));
-                } catch (e) {
-                    console.warn('比例尺控件加载失败:', e.message);
-                }
-            }
-
-            // 修复ToolBar问题
-            if (window.AMap && AMap.ToolBar) {
-                try {
-                    // 先检查版本兼容性
-                    if (typeof AMap.ToolBar === 'function') {
-                        map.addControl(new AMap.ToolBar({
-                            position: 'LT',
-                            offset: [10, 10]
-                        }));
-                        console.log('ToolBar控件加载成功');
-                    } else {
-                        console.warn('ToolBar不是构造函数，跳过');
-                    }
-                } catch (error) {
-                    console.warn('ToolBar初始化失败，创建自定义工具栏');
-                    createCustomToolbar();
-                }
-            } else {
-                console.warn('ToolBar控件不可用，创建自定义工具栏');
-                createCustomToolbar();
-            }
-        }
-
-        // ============ 修复：自定义工具栏 ============
-        function createCustomToolbar() {
-            const toolbarDiv = document.createElement('div');
-            toolbarDiv.style.cssText = `
-                position: absolute;
-                top: 20px;
-                right: 20px;
-                background: white;
-                border-radius: 4px;
-                box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-                padding: 5px;
-                z-index: 1000;
-                display: flex;
-                gap: 5px;
-            `;
-
-            toolbarDiv.innerHTML = `
-                <button onclick="map.zoomIn()" style="width: 30px; height: 30px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">+</button>
-                <button onclick="map.zoomOut()" style="width: 30px; height: 30px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">-</button>
-            `;
-
-            document.getElementById('mapContainer').appendChild(toolbarDiv);
-        }
-
-        // ============ 核心功能实现 ============
-
-        // 1. 加载所有公厕
-        function loadAllToilets() {
-            clearMarkers();
-
-            if (!NATIONAL_TOILET_DATA || NATIONAL_TOILET_DATA.length === 0) {
-                updateStatus('当前没有公厕数据。请点击“显示全部”从高德POI检索公厕数据', true);
-                updateStatistics();
-                return;
-            }
-
-            NATIONAL_TOILET_DATA.forEach(toilet => {
-                const marker = createToiletMarker(toilet);
-                markers.push(marker);
-                map.add(marker);
-            });
-
-            // 调整到合适视野显示全国
-            map.setZoomAndCenter(CONFIG.DEFAULT_ZOOM, CONFIG.DEFAULT_CENTER);
-            updateStatus(`已加载全国 ${NATIONAL_TOILET_DATA.length} 个公厕数据`);
-            updateStatistics();
-        }
-
-        // 2. 创建公厕标记
-        function createToiletMarker(toilet) {
-            let color = '#3498db';
-            let icon = '🚻';
-
-            if (toilet.type === 'accessible') {
-                color = '#e74c3c';
-                icon = '♿';
-            } else if (toilet.type === 'mother') {
-                color = '#9b59b6';
-                icon = '👶';
-            }
-
-            const marker = new AMap.Marker({
-                position: [toilet.lng, toilet.lat],
-                title: `${toilet.name} (${toilet.city}) - 热度: ${toilet.popularity}`,
-                content: `
-                    <div style="background: ${color}; color: white; 
-                         width: 36px; height: 36px; border-radius: 50%; 
-                         display: flex; align-items: center; justify-content: center;
-                         font-size: 18px; font-weight: bold; box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-                         border: 2px solid white; cursor: pointer;">
-                        ${icon}
-                    </div>
-                `,
-                offset: new AMap.Pixel(-18, -18)
-            });
-
-            // 绑定点击事件
-            marker.on('click', function () {
-                showToiletInfo(toilet, marker.getPosition());
-                document.getElementById('selectToilet').value = toilet.id;
-            });
-
-            return marker;
-        }
-
-        // ============ WMS & helpers ============
-        function tileXYZToBBox4326(x, y, z) {
-            // 返回 [minx, miny, maxx, maxy] in lon/lat (EPSG:4326)
-            const n = Math.pow(2, z);
-            const lon_left = x / n * 360 - 180;
-            const lon_right = (x + 1) / n * 360 - 180;
-
-            function tileYToLat(y, z) {
-                const n = Math.pow(2, z);
-                const lat_rad = Math.atan(Math.sinh(Math.PI * (1 - 2 * y / n)));
-                return lat_rad * 180 / Math.PI;
-            }
-
-            const lat_top = tileYToLat(y, z);
-            const lat_bottom = tileYToLat(y + 1, z);
-
-            const minx = lon_left;
-            const miny = lat_bottom;
-            const maxx = lon_right;
-            const maxy = lat_top;
-            return [minx, miny, maxx, maxy];
-        }
-
-        async function addQgisWmsLayer() {
-            if (!map) return;
-            if (qgisWmsLayer) return;
-
-            updateStatus('正在探测 QGIS WMS 参数...', false);
-            console.info('[QGIS WMS] 开始探测可用的 VERSION/CRS 组合');
-
-            // 小工具：尝试加载图片，成功返回 true，失败返回 false
-            function attemptLoadImage(url, timeout = 4000) {
-                return new Promise((resolve) => {
-                    try {
-                        window._qgisWmsProbeLog = window._qgisWmsProbeLog || [];
-                        const img = new Image();
-                        img.crossOrigin = 'anonymous';
-                        let timer = setTimeout(() => {
-                            img.onload = img.onerror = null;
-                            window._qgisWmsProbeLog.push({ url, type: 'image', ok: false, note: 'timeout' });
-                            try { if (typeof updateWmsProbePanel === 'function') updateWmsProbePanel(); } catch(e){}
-                            resolve(false);
-                        }, timeout);
-                        img.onload = function () {
-                            clearTimeout(timer);
-                            window._qgisWmsProbeLog.push({ url, type: 'image', ok: true });
-                            try { if (typeof updateWmsProbePanel === 'function') updateWmsProbePanel(); } catch(e){}
-                            resolve(true);
-                        };
-                        img.onerror = function () {
-                            clearTimeout(timer);
-                            window._qgisWmsProbeLog.push({ url, type: 'image', ok: false });
-                            try { if (typeof updateWmsProbePanel === 'function') updateWmsProbePanel(); } catch(e){}
-                            resolve(false);
-                        };
-                        img.src = url;
-                    } catch (e) {
-                        console.debug('[QGIS WMS] attemptLoadImage 异常', e);
-                        window._qgisWmsProbeLog = window._qgisWmsProbeLog || [];
-                        window._qgisWmsProbeLog.push({ url, type: 'image', ok: false, note: 'exception' });
-                        resolve(false);
-                    }
-                });
-            }
-
-            // 根据 tile x/y/z 与指定组合生成瓦片 URL
-            function buildWmsUrlForTile(x, y, z, combo) {
-                let bboxArr;
-                if (combo.crs === 'EPSG:4326') {
-                    const b = tileXYZToBBox4326(x, y, z); // [minx, miny, maxx, maxy]
-                    if (combo.bboxOrder === 'latlon') {
-                        // WMS 1.3.0 with EPSG:4326 expects lat,lon order (miny,minx,maxy,maxx)
-                        bboxArr = [b[1], b[0], b[3], b[2]];
-                    } else {
-                        // lon,lat order (minx,miny,maxx,maxy)
-                        bboxArr = [b[0], b[1], b[2], b[3]];
-                    }
-                } else {
-                    // EPSG:3857 (meters)
-                    const b = tileXYZToBBox3857(x, y, z); // [minx, miny, maxx, maxy]
-                    bboxArr = [b[0], b[1], b[2], b[3]];
-                }
-
-                const bbox = bboxArr.join(',');
-                const params = [];
-                params.push('SERVICE=WMS');
-                params.push(`VERSION=${combo.version}`);
-                params.push('REQUEST=GetMap');
-                params.push(`LAYERS=${encodeURIComponent(combo.layers)}`);
-                params.push('STYLES=');
-                params.push(`FORMAT=${combo.format ? encodeURIComponent(combo.format) : 'image/png'}`);
-                params.push('TRANSPARENT=true');
-                params.push(`${combo.crsParam}=${combo.crs}`);
-                params.push(`BBOX=${bbox}`);
-                params.push('WIDTH=256');
-                params.push('HEIGHT=256');
-                return `${QGIS_WMS_BASE}?${params.join('&')}`;
-            }
-
-            // 先尝试使用 GetCapabilities 获取服务元信息（如果允许 CORS）以获得精确的 layer 名称与支持的 CRS
-            async function probeGetCapabilities(baseUrl) {
-                const versions = ['1.3.0', '1.1.1'];
-                for (const v of versions) {
-                    try {
-                        const url = `${baseUrl.replace(/\/?$/, '')}?SERVICE=WMS&REQUEST=GetCapabilities&VERSION=${v}`;
-                        console.debug('[QGIS WMS] 尝试 GetCapabilities:', url);
-                        const resp = await fetch(url, { method: 'GET', mode: 'cors' });
-                        if (!resp.ok) { console.debug('[QGIS WMS] GetCapabilities 返回状态:', resp.status); continue; }
-                        const text = await resp.text();
-                        const parser = new DOMParser();
-                        const xml = parser.parseFromString(text, 'application/xml');
-                        const layerElems = Array.from(xml.getElementsByTagName('Layer'));
-                        const layerNames = new Set();
-                        const supportedCRS = new Set();
-
-                        layerElems.forEach(layer => {
-                            const n = layer.getElementsByTagName('Name')[0];
-                            if (n && n.textContent) layerNames.add(n.textContent.trim());
-                            // 支持 CRS/SRS 标签
-                            const crsTags = layer.getElementsByTagName('CRS');
-                            const srsTags = layer.getElementsByTagName('SRS');
-                            Array.from(crsTags).forEach(c => c.textContent && supportedCRS.add(c.textContent.trim()));
-                            Array.from(srsTags).forEach(c => c.textContent && supportedCRS.add(c.textContent.trim()));
-                        });
-
-                        // 如果顶层 Layer 没有 Name，则试从 Capability/Layer 下寻找
-                        if (layerNames.size === 0) {
-                            const names = Array.from(xml.getElementsByTagName('Name'));
-                            names.forEach(n => n.textContent && layerNames.add(n.textContent.trim()));
-                        }
-
-                        if (layerNames.size > 0) {
-                            return { version: v, layerNames: Array.from(layerNames), supportedCRS: Array.from(supportedCRS) };
-                        }
-                    } catch (e) {
-                        console.debug('[QGIS WMS] GetCapabilities 请求失败或被 CORS 阻止:', e);
-                    }
-                }
-                return null;
-            }
-
-            // 构建一系列候选 layer 名称和 base URL 变体
-            const baseVariants = [QGIS_WMS_BASE, QGIS_WMS_BASE.replace(/\/?$/, ''), QGIS_WMS_BASE.replace(/\/?$/, '') + '/wms'];
-            const defaultLayer = getDefaultWmsLayerName();
-            // 增加 QGIS 项目中常见的中/英名称候选（例如你提供的：`中国省线`（线）和 `中国省`（面）），并包含部分前缀变体
-            const layerCandidates = [
-                defaultLayer,
-                `smilejxl:${defaultLayer}`,
-                `${defaultLayer}:${defaultLayer}`,
-                '中国省线',
-                '中国省',
-                `smilejxl:中国省线`,
-                `smilejxl:中国省`
-            ];
-            const formatCandidates = ['image/png', 'image/png8', 'image/jpeg'];
-
-            // 中心样例瓦片
-            let sampleZ = Math.max(2, Math.round(map.getZoom() || 4));
-            const center = map.getCenter();
-            const n = Math.pow(2, sampleZ);
-            const xt = Math.floor((center.lng + 180) / 360 * n);
-            const latRad = center.lat * Math.PI / 180;
-            const yt = Math.floor((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * n);
-
-            let chosen = null;
-
-            // 1) 优先使用 GetCapabilities 的发现结果
-            for (const base of baseVariants) {
-                const cap = await probeGetCapabilities(base);
-                if (cap) {
-                    console.debug('[QGIS WMS] GetCapabilities 发现：', cap);
-                    // 优先使用与默认Layer一致的项，否则使用第一个可用的 layer
-                    let candidateLayer = cap.layerNames.find(n => n === defaultLayer) || cap.layerNames[0];
-                    // 尝试使用 capabilities 中的 crs（优先 EPSG:4326 / EPSG:3857）
-                    const preferCRS = cap.supportedCRS.includes('EPSG:4326') ? 'EPSG:4326' : (cap.supportedCRS.includes('EPSG:3857') ? 'EPSG:3857' : cap.supportedCRS[0] || 'EPSG:4326');
-
-                    const candidates = [
-                        { version: cap.version === '1.3.0' ? '1.3.0' : '1.1.1', crsParam: cap.version === '1.3.0' ? 'CRS' : 'SRS', crs: preferCRS, bboxOrder: (cap.version === '1.3.0' && preferCRS === 'EPSG:4326') ? 'latlon' : 'lonlat', layers: candidateLayer }
-                    ];
-
-                    for (const combo of candidates) {
-                        const testUrl = buildWmsUrlForTile(xt, yt, sampleZ, combo).replace(QGIS_WMS_BASE, base);
-                        console.debug('[QGIS WMS] 使用 Capabilities 测试 URL:', testUrl);
-                        updateStatus(`测试 WMS (GetCapabilities) ${combo.version} / ${combo.crs} ...`, false);
-                        try {
-                            // 首先尝试 fetch 以便获取 HTTP 状态和响应信息（若被 CORS 阻止则抛出）
-                            const resp = await fetch(testUrl, { method: 'GET', mode: 'cors' });
-                            window._qgisWmsProbeLog = window._qgisWmsProbeLog || [];
-                            window._qgisWmsProbeLog.push({ url: testUrl, type: 'fetch', status: resp.status });
-                            if (resp.ok) {
-                                const contentType = resp.headers.get('content-type') || '';
-                                if (contentType.includes('image')) {
-                                    chosen = combo; chosen.sampleUrl = testUrl; chosen.base = base; break;
-                                } else {
-                                    const body = await resp.text();
-                                    console.debug('[QGIS WMS] 非图像响应返回：', resp.status, body.slice ? body.slice(0, 200) : body);
-                                }
-                            } else {
-                                const body = await resp.text().catch(() => '');
-                                console.debug('[QGIS WMS] fetch 返回状态', resp.status, body.slice ? body.slice(0,200) : body);
-                            }
-                        } catch (e) {
-                            console.debug('[QGIS WMS] fetch 被阻止或失败，回退到 image 加载检测', e);
-                            window._qgisWmsProbeLog = window._qgisWmsProbeLog || [];
-                            window._qgisWmsProbeLog.push({ url: testUrl, type: 'fetch', ok: false, error: (e && e.message) || String(e) });
-                            const ok = await attemptLoadImage(testUrl);
-                            if (ok) { chosen = combo; chosen.sampleUrl = testUrl; chosen.base = base; break; }
-                        }
-                    }
-                    if (chosen) break;
-                }
-            }
-
-            // 2) 如果 GetCapabilities 未能提供信息或未找到可用组合，则进行扩展尝试（layer 变体 + 格式变体）
-            if (!chosen) {
-                console.info('[QGIS WMS] 未通过 GetCapabilities 确认可用组合，进行扩展尝试');
-                const versions = ['1.3.0', '1.1.1'];
-                let attempts = 0;
-                for (const base of baseVariants) {
-                    for (const layerName of layerCandidates) {
-                        for (const version of versions) {
-                            for (const crs of ['EPSG:4326', 'EPSG:3857']) {
-                                for (const fmt of formatCandidates) {
-                                    if (attempts++ > 30) break; // 限制尝试次数，避免无限循环
-                                    const combo = {
-                                        version,
-                                        crsParam: version === '1.3.0' ? 'CRS' : 'SRS',
-                                        crs,
-                                        bboxOrder: (version === '1.3.0' && crs === 'EPSG:4326') ? 'latlon' : 'lonlat',
-                                        layers: layerName,
-                                        format: fmt
-                                    };
-                                    // build URL and try fetch first
-                                    const testUrl = (function () {
-                                        let url = buildWmsUrlForTile(xt, yt, sampleZ, combo);
-                                        // replace default base with variant
-                                        return url.replace(QGIS_WMS_BASE, base).replace('FORMAT=image/png', `FORMAT=${encodeURIComponent(fmt)}`);
-                                    })();
-
-                                    console.debug('[QGIS WMS] 扩展测试 URL:', testUrl);
-                                    updateStatus(`尝试 WMS: ${version} ${crs} ${layerName} ${fmt}`, false);
-                                    try {
-                                        const resp = await fetch(testUrl, { method: 'GET', mode: 'cors' });
-                                        window._qgisWmsProbeLog = window._qgisWmsProbeLog || [];
-                                        window._qgisWmsProbeLog.push({ url: testUrl, type: 'fetch', status: resp.status });
-                                        if (resp.ok) {
-                                            const contentType = resp.headers.get('content-type') || '';
-                                            if (contentType.includes('image')) {
-                                                chosen = combo; chosen.sampleUrl = testUrl; chosen.base = base; break;
-                                            }
-                                        } else {
-                                            const body = await resp.text().catch(() => '');
-                                            console.debug('[QGIS WMS] fetch 返回(非200)：', resp.status, body.slice ? body.slice(0,200) : body);
-                                        }
-                                    } catch (e) {
-                                        window._qgisWmsProbeLog = window._qgisWmsProbeLog || [];
-                                        window._qgisWmsProbeLog.push({ url: testUrl, type: 'fetch', ok: false, error: (e && e.message) || String(e) });
-                                        const ok = await attemptLoadImage(testUrl);
-                                        if (ok) { chosen = combo; chosen.sampleUrl = testUrl; chosen.base = base; break; }
-                                    }
-                                }
-                                if (chosen) break;
-                            }
-                            if (chosen) break;
-                        }
-                        if (chosen) break;
-                    }
-                    if (chosen || attempts > 30) break;
-                }
-            }
-
-            if (!chosen) {
-                console.warn('[QGIS WMS] 探测后未找到可用 WMS 参数组合，使用默认组合继续加载（可能仍会 400）');
-                updateStatus('WMS 探测未找到可用组合，使用默认参数加载（如果仍 400，请提供失败请求 URL）', true);
-                chosen = { version: '1.1.1', crsParam: 'SRS', crs: 'EPSG:4326', bboxOrder: 'lonlat', layers: getDefaultWmsLayerName() };
-            } else {
-                console.info('[QGIS WMS] 选定组合：', chosen);
-                updateStatus(`WMS 参数探测成功：VERSION=${chosen.version}, ${chosen.crsParam}=${chosen.crs}, LAYERS=${chosen.layers}`, false);
-            }
-
-            // 将探测结果存储到 wmsConfig（便于调试）
-            try { wmsConfig.endpoint = chosen.base || QGIS_WMS_BASE; wmsConfig.version = chosen.version; wmsConfig.crs = chosen.crs; wmsConfig.layer = chosen.layers; } catch (e) {}
-            try { if (typeof updateWmsProbePanel === 'function') updateWmsProbePanel(); } catch(e) { console.debug('updateWmsProbePanel 调用失败', e); }
-
-
-            // 创建 TileLayer，使用选定的组合构建瓦片 URL
-            qgisWmsLayer = new AMap.TileLayer({
-                getTileUrl: function (x, y, z) {
-                    try {
-                        let url = buildWmsUrlForTile(x, y, z, chosen);
-                        if (chosen && chosen.base) url = url.replace(QGIS_WMS_BASE, chosen.base);
-                        // 如果启用了代理，则将实际 URL 放到代理前缀后（例如 proxy?url=ENCODED_URL）
-                        if (window._useWmsProxy && window._wmsProxyUrl) {
-                            const proxy = window._wmsProxyUrl;
-                            const sep = proxy.includes('?') ? '&' : '?';
-                            return `${proxy}${sep}url=${encodeURIComponent(url)}`;
-                        }
-                        return url;
-                    } catch (e) {
-                        console.debug('[QGIS WMS] getTileUrl 构建失败', e);
-                        return '';
-                    }
-                },
-                zIndex: 6,
-                opacity: 0.85
-            });
-
-            try {
-                map.add(qgisWmsLayer);
-                console.info('[QGIS WMS] 图层已添加（组合：', chosen, ')');
-                if (chosen.sampleUrl) console.debug('[QGIS WMS] 成功样例 URL:', chosen.sampleUrl);
-            } catch (e) {
-                console.error('[QGIS WMS] 添加图层失败', e);
-                updateStatus('添加 WMS 图层失败，请检查控制台日志', true);
-            }
-        }
-
-        function removeQgisWmsLayer() {
-            if (qgisWmsLayer && map) {
-                try { map.remove(qgisWmsLayer); } catch (e) {}
-                qgisWmsLayer = null;
-                console.info('[QGIS WMS] 图层已移除');
-            }
-        }
-
-        function toggleQgisWms(enable) {
-            isQgisWmsEnabled = !!enable;
-            if (isQgisWmsEnabled) addQgisWmsLayer(); else removeQgisWmsLayer();
-        }
-
-        // Heatmap 更新（增强）：在地图交互时延迟更新，并做更长的防抖以减少 canvas readback 警告
-        function requestHeatmapUpdate(data, delay = 600) {
-            if (!heatmapLayer) return;
-
-            // 如果正在交互（拖动/缩放），记录为待处理数据，等交互结束后再更新
-            if (mapIsInteracting) {
-                _pendingHeatmapData = data;
-                return;
-            }
-
-            // 否则使用防抖定时器更新
-            if (_heatmapUpdateTimer) clearTimeout(_heatmapUpdateTimer);
-            _heatmapUpdateTimer = setTimeout(() => {
-                try {
-                    if (heatmapLayer.setData) {
-                        heatmapLayer.setData(data);
-                    } else if (heatmapLayer.setDataSet) {
-                        // v1.4 接口接受 {data: [...]}
-                        if (data && data.data) {
-                            heatmapLayer.setDataSet(data);
-                        } else {
-                            heatmapLayer.setDataSet({ data });
-                        }
-                    }
-                } catch (e) {
-                    console.warn('Heatmap 更新失败：', e);
-                } finally {
-                    _heatmapUpdateTimer = null;
-                }
-            }, delay);
-        }
-
-        // 在交互结束时立即应用一次可用的待处理数据（无延迟）
-        function applyPendingHeatmapIfAny() {
-            if (!heatmapLayer) { _pendingHeatmapData = null; return; }
-            if (_pendingHeatmapData) {
-                try {
-                    const d = _pendingHeatmapData;
-                    _pendingHeatmapData = null;
-                    if (heatmapLayer.setData) heatmapLayer.setData(d);
-                    else if (heatmapLayer.setDataSet) heatmapLayer.setDataSet(d && d.data ? d : { data: d });
-                } catch (e) {
-                    console.warn('应用待处理热力图数据失败：', e);
-                }
-            }
-        }
-
-        // 兼容：旧调用 scheduleHeatmapUpdate -> 映射到 requestHeatmapUpdate
-        function scheduleHeatmapUpdate(data, delay) {
-            // 保持 API 向后兼容：旧代码使用 scheduleHeatmapUpdate
-            return requestHeatmapUpdate(data, delay);
-        }
-
-        // 更新右侧面板中的热力图信息（半径与当前地图范围）
-        function updateHeatmapInfo() {
-            const el = document.getElementById('heatmapInfo');
-            if (!el) return;
-            try {
-                const radius = (typeof currentHeatmapRadius !== 'undefined' && currentHeatmapRadius !== null) ? currentHeatmapRadius : 0;
-                let boundsText = '-';
-                if (map && map.getBounds) {
-                    const b = map.getBounds();
-                    if (b) {
-                        const sw = b.getSouthWest();
-                        const ne = b.getNorthEast();
-                        boundsText = `${sw.lng.toFixed(4)},${sw.lat.toFixed(4)} → ${ne.lng.toFixed(4)},${ne.lat.toFixed(4)}`;
-                    }
-                }
-                el.textContent = `热力图半径: ${radius}px — 当前地图范围: ${boundsText}`;
-            } catch (e) {
-                console.debug('updateHeatmapInfo 异常', e);
-                el.textContent = `热力图半径: ${currentHeatmapRadius}px`;
-            }
-        }
-
-        // 3. 修复：切换地图模式（核心修复卫星图显示，增强热力图）
-        function switchMapMode(mode) {
-            // 关键：先移除所有现有基础图层（避免覆盖）
-            const allLayers = map.getLayers();
-            allLayers.forEach(layer => {
-                // 只保留控件/标记图层，移除地图瓦片/热力图图层
-                if (layer instanceof AMap.TileLayer || layer instanceof AMap.HeatMap) {
-                    map.remove(layer);
-                }
-            });
-
-            // 隐藏热力图图例
-            document.getElementById('heatmapLegend').style.display = 'none';
-
-            switch (mode) {
-                case 'normal':
-                    // 加载标准地图（矢量图）
-                    const normalLayer = new AMap.TileLayer({
-                        url: 'https://webst0{1,2,3,4}.is.autonavi.com/appmaptile?style=7&x={x}&y={y}&z={z}&key=' + CONFIG.AMAP_JS_KEY,
-                        zIndex: 1
+                AMap.plugin(["AMap.PlaceSearch", "AMap.Geolocation"], function () {
+                    placeSearch = new AMap.PlaceSearch({
+                        type: '公共厕所',
+                        pageSize: 50,
+                        pageIndex: 1,
+                        extensions: 'base'
                     });
-                    map.add(normalLayer);
-                    heatmapLayer = null;
-                    if (isQgisWmsEnabled) addQgisWmsLayer();
-                    updateStatus('已切换至标准地图');
-                    break;
+                    getGPSLocation();
+                });
 
-                case 'satellite':
-                    try {
-                        // 方案1：优先使用官方卫星图层（需权限）
-                        const satelliteLayer = new AMap.TileLayer.Satellite({ zIndex: 1 });
-                        map.add(satelliteLayer);
-                        // 叠加路网（避免纯卫星图无道路标注）
-                        const roadNetLayer = new AMap.TileLayer.RoadNet({ zIndex: 2 });
-                        map.add(roadNetLayer);
-                        if (isQgisWmsEnabled) addQgisWmsLayer();
-                        updateStatus('已切换至卫星影像（含路网标注）');
-                    } catch (e) {
-                        console.warn('官方卫星图层加载失败，使用瓦片直连模式:', e);
-                        // 方案2：瓦片直连模式（无需权限，稳定显示）
-                        const satelliteTileLayer = new AMap.TileLayer({
-                            zIndex: 1,
-                            getTileUrl: (x, y, z) => {
-                                // 卫星瓦片URL模板（style=6代表卫星图）
-                                const subdomain = ['1', '2', '3', '4'][Math.floor(Math.random() * 4)];
-                                return `https://webst0${subdomain}.is.autonavi.com/appmaptile?style=6&x=${x}&y=${y}&z=${z}&key=${CONFIG.AMAP_JS_KEY}`;
-                            }
-                        });
-                        map.add(satelliteTileLayer);
-                        // 叠加路网（显示道路名称）
-                        const roadLayer = new AMap.TileLayer.RoadNet({ zIndex: 2 });
-                        map.add(roadLayer);
-                        updateStatus('已切换至卫星影像（稳定瓦片模式）');
-                    }
-                    heatmapLayer = null;
-                    break;
+                bindEvents();
+                updateStatus('地图加载成功');
 
-                case 'heatmap':
-                    showDarkHeatmap();
-                    break;
+            } catch (e) {
+                console.error(e);
+                updateStatus('地图初始化失败，请检查API Key', true);
             }
         }
 
-        // 4. 增强：显示深色热力图（新增动态半径、图例显示）
-        // 增强版：深色热力图初始化（修复加载失败）
-        function showDarkHeatmap() {
-            // 先移除现有热力图
-            if (heatmapLayer) {
-                map.remove(heatmapLayer);
-                heatmapLayer = null;
-                document.getElementById('heatmapLegend').style.display = 'none';
-                updateStatus('已关闭热力图');
-                return;
-            }
+        // ============ 关键功能：手动选点 & 地图点击 ============
+        function bindEvents() {
+            // 1. 点击“当前位置”输入框 -> 激活选点模式
+            document.getElementById('currentPosition').onclick = function () {
+                isSelectingStart = true;
+                map.setDefaultCursor('crosshair'); // 鼠标变成十字准星
+                this.value = "请在地图上点击位置...";
+                updateStatus('请在地图上点击任意位置作为您的起点', false);
+            };
 
-            // 强制检查AMap对象是否存在
-            if (typeof AMap === 'undefined') {
-                updateStatus('高德地图API未加载完成', true);
-                return;
-            }
-
-            // 方案1：使用v2.0兼容写法加载HeatMap插件
-            AMap.plugin(['AMap.HeatMap'], function () {
-                // 延迟500ms确保插件完全加载
-                setTimeout(() => {
-                    try {
-                        // 1. 先验证HeatMap类是否存在
-                        if (typeof AMap.HeatMap !== 'function') {
-                            updateStatus('热力图插件加载失败：AMap.HeatMap未定义', true);
-                            // 降级方案：尝试旧版类名
-                            if (typeof AMap.Heatmap === 'function') {
-                                updateStatus('尝试使用旧版热力图类名', false);
-                                initHeatmap(AMap.Heatmap);
-                            }
-                            return;
-                        }
-
-                        // 2. 初始化热力图（兼容v2.0）
-                        initHeatmap(AMap.HeatMap);
-
-                    } catch (error) {
-                        console.error('热力图初始化异常:', error);
-                        updateStatus(`热力图加载失败：${error.message}`, true);
-                        // 终极降级：显示静态热力图标记
-                        showStaticHeatmapMarkers();
-                    }
-                }, 500);
+            // 2. 地图点击事件
+            map.on('click', function (e) {
+                if (isSelectingStart) {
+                    // 如果处于选起点模式
+                    setMyCurrentLocation([e.lnglat.lng, e.lnglat.lat]);
+                    isSelectingStart = false;
+                    map.setDefaultCursor('default');
+                    updateStatus('当前位置已手动更新');
+                }
             });
 
-            // 核心初始化逻辑（抽离为函数）
-            function initHeatmap(HeatMapClass) {
-                // 准备热力图数据
-                const heatmapData = NATIONAL_TOILET_DATA.map(toilet => ({
-                    lng: toilet.lng,
-                    lat: toilet.lat,
-                    count: toilet.popularity || 50 // 热度值（0-100）
-                }));
-
-                // 创建热力图实例
-                heatmapLayer = new HeatMapClass(map, {
-                    radius: currentHeatmapRadius,
-                    opacity: [0.2, 0.8], // 降低透明度避免遮挡地图
-                    gradient: { // 简化渐变配置（避免兼容问题）
-                        0.1: '#3366FF',
-                        0.3: '#33CCCC',
-                        0.5: '#99CC00',
-                        0.7: '#FFCC33',
-                        0.9: '#FF3333'
-                    },
-                    zIndex: 5
-                });
-
-                // 设置数据（兼容v1.4和v2.0） - 使用节流更新并在交互时延迟，避免频繁的 canvas readback 警告
-                requestHeatmapUpdate(heatmapData);
-
-                // 说明：某些浏览器会对频繁的 getImageData 操作提示性能警告。已在 Map 初始化时设置 renderOptions.willReadFrequently = true，
-                // 并且通过节流更新热力图来降低触发概率，如仍出现可忽略（非致命）。
-
-                // 显示图例
-                document.getElementById('heatmapLegend').style.display = 'block';
-                updateStatus(`已显示热力图 - 半径: ${currentHeatmapRadius}px`);
-                try { const el = document.getElementById('heatmapInfo'); if (el) el.textContent = `热力图半径: ${currentHeatmapRadius}px — 当前地图范围: 计算中...`; updateHeatmapInfo(); } catch(e) { console.debug('更新 heatmapInfo 异常', e); }
+            // 按钮事件
+            document.getElementById('btnSearchCity').onclick = searchCityToilets;
+            document.getElementById('btnShowAll').onclick = searchNearby;
+            document.getElementById('btnStartNavigation').onclick = startNavigation;
+            document.getElementById('btnStopNav').onclick = stopNavigation;
+            document.getElementById('btnClearAll').onclick = () => { clearMarkers(); stopNavigation(); };
+            document.getElementById('btnNormalMap').onclick = () => { map.remove(map.getLayers()); map.add(new AMap.TileLayer()); };
+            document.getElementById('btnSatellite').onclick = () => { map.add(new AMap.TileLayer.Satellite()); map.add(new AMap.TileLayer.RoadNet()); };
+            document.getElementById('btnDarkHeatmap').onclick = showDarkHeatmap;
+            // WMS controls (guarded)
+            const btnToggleWMS = document.getElementById('btnToggleWMS'); if (btnToggleWMS) btnToggleWMS.onclick = toggleWMS;
+            const btnRefreshWMS = document.getElementById('btnRefreshWMS'); if (btnRefreshWMS) btnRefreshWMS.onclick = updateWMSOverlay;
+            const wmsLayerSelect = document.getElementById('wmsLayerSelect');
+            const wmsLayerEl = document.getElementById('wmsLayerName');
+            if (wmsLayerSelect) {
+                wmsLayerSelect.onchange = function() {
+                    if (this.value === '__other__') {
+                        if (wmsLayerEl) wmsLayerEl.style.display = 'block';
+                    } else {
+                        if (wmsLayerEl) wmsLayerEl.style.display = 'none';
+                        updateWMSOverlay();
+                    }
+                };
             }
+            if (wmsLayerEl) wmsLayerEl.onchange = updateWMSOverlay;
+            const wmsOpacityEl = document.getElementById('wmsOpacity'); if (wmsOpacityEl) wmsOpacityEl.oninput = function() { if (wmsImgEl) wmsImgEl.style.opacity = this.value; };
 
-            // 降级方案：静态热力图标记（API加载失败时备用）
-            function showStaticHeatmapMarkers() {
-                NATIONAL_TOILET_DATA.forEach(toilet => {
-                    // 根据热度值设置标记颜色
-                    let color = '#3366FF';
-                    if (toilet.popularity > 60) color = '#33CCCC';
-                    if (toilet.popularity > 70) color = '#99CC00';
-                    if (toilet.popularity > 80) color = '#FFCC33';
-                    if (toilet.popularity > 90) color = '#FF3333';
+            // Ensure WMS refreshes when map stops moving or after operations
+            map.on('moveend', function(){ if (wmsEnabled) updateWMSOverlay(); });
+            map.on('complete', function(){ if (wmsEnabled) updateWMSOverlay(); });
 
-                    const marker = new AMap.Marker({
-                        position: [toilet.lng, toilet.lat],
-                        content: `<div style="width: ${toilet.popularity / 5}px; height: ${toilet.popularity / 5}px; 
-                             background: ${color}; border-radius: 50%; opacity: 0.7;"></div>`,
-                        offset: new AMap.Pixel(-toilet.popularity / 10, -toilet.popularity / 10)
-                    });
-                    map.add(marker);
-                    markers.push(marker);
-                });
-                updateStatus('热力图加载失败，已显示静态热度标记', true);
-            }
-        }
-        // 新增：调整热力图半径（修复：方法调用）
-        function adjustHeatmapRadius(newRadius) {
-            if (!heatmapLayer) {
-                updateStatus('请先启用热力图', true);
-                return;
-            }
-
-            currentHeatmapRadius = newRadius;
-            // 修复：直接修改配置并重新渲染
-            heatmapLayer.setOptions({ radius: newRadius });
-            // 重新设置数据触发重绘（节流）
-            const heatmapData = NATIONAL_TOILET_DATA.map(toilet => ({
-                lng: toilet.lng,
-                lat: toilet.lat,
-                count: toilet.popularity || 50
-            }));
-            scheduleHeatmapUpdate({ data: heatmapData, max: 100 });
-
-            updateStatus(`热力图半径已调整为: ${newRadius}px`);
-            try { updateHeatmapInfo(); } catch (e) { console.debug('updateHeatmapInfo 异常', e); }
+            // 下拉框联动逻辑 (Change事件)
+            const selectToiletEl = document.getElementById('selectToilet');
+            if (selectToiletEl) selectToiletEl.onchange = function () {
+                const idx = this.value;
+                if (idx !== "") {
+                    // 通过索引找到Marker，并触发点击事件，实现联动
+                    const marker = currentMarkers[idx];
+                    if (marker) {
+                        // 使用更安全的触发器，避免 AMap.event 未定义时报错
+                        triggerMarkerClick(marker);
+                    }
+                }
+            };
         }
 
-        // 5. 设置当前位置
-        function setCurrentPosition(position) {
-            currentLocation = position;
-
-            document.getElementById('currentPosition').value =
-                `${position[0].toFixed(6)}, ${position[1].toFixed(6)}`;
-
-            if (currentLocationMarker) {
-                map.remove(currentLocationMarker);
-            }
-
+        function setMyCurrentLocation(position) {
+            currentPos = position;
+            document.getElementById('currentPosition').value = position[0].toFixed(6) + ', ' + position[1].toFixed(6);
+            if (currentLocationMarker) map.remove(currentLocationMarker);
             currentLocationMarker = new AMap.Marker({
                 position: position,
-                content: `
-                    <div style="background: #2ecc71; color: white; 
-                         width: 40px; height: 40px; border-radius: 50%; 
-                         display: flex; align-items: center; justify-content: center;
-                         font-size: 20px; font-weight: bold; box-shadow: 0 3px 10px rgba(0,0,0,0.3);
-                         border: 3px solid white;">
-                        📍
-                    </div>
-                `,
+                map: map,
+                content: `<div style="background: #2ecc71; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; box-shadow: 0 3px 10px rgba(0,0,0,0.3); border: 3px solid white;">📍</div>`,
                 offset: new AMap.Pixel(-20, -20),
-                zIndex: 100 // 确保当前位置标记在最上层
+                zIndex: 999
             });
-
-            map.add(currentLocationMarker);
+            map.setCenter(position);
         }
 
-        // 6. 获取GPS位置
-        function getGPSLocation() {
-            if (!navigator.geolocation) {
-                updateStatus('浏览器不支持地理定位', true);
-                return;
-            }
-
-            updateStatus('正在获取当前位置...');
-
-            navigator.geolocation.getCurrentPosition(
-                function (position) {
-                    const location = [
-                        position.coords.longitude,
-                        position.coords.latitude
-                    ];
-                    setCurrentPosition(location);
-                    map.setCenter(location);
-                    map.setZoom(Math.min(12, CONFIG.MAX_ZOOM)); // 限制缩放级别
-                    updateStatus('GPS定位成功');
-                },
-                function (error) {
-                    updateStatus('定位失败，请检查定位权限', true);
-                },
-                {
-                    enableHighAccuracy: true,
-                    timeout: 10000
-                }
-            );
-        }
-
-        // 7. 新增：创建导航人物标记
-        function createNavCharacter(position) {
-            if (navCharacterMarker) {
-                map.remove(navCharacterMarker);
-            }
-
-            // 创建带DOM元素的标记（修复：确保能获取到元素）
-            const characterDiv = document.createElement('div');
-            characterDiv.className = 'nav-character';
-
-            navCharacterMarker = new AMap.Marker({
-                position: position,
-                content: characterDiv,
-                offset: new AMap.Pixel(-20, -20),
-                zIndex: 1000 // 确保人物在最上层
-            });
-
-            map.add(navCharacterMarker);
-            return navCharacterMarker;
-        }
-
-        // 8. 新增：导航动画核心函数（修复：DOM元素获取）
-        function animateNavigation() {
-            if (isPaused || !isNavigating || navPath.length <= 1) return;
-
-            try {
-                // 获取当前速度（根据交通工具类型）
-                const speed = CONFIG.ANIMATION_SPEED[currentTransportMode] || CONFIG.ANIMATION_SPEED.walking;
-
-                // 获取当前位置和下一个目标点，并校验有效性
-                const currentPos = navPath[navCurrentIndex];
-                const nextPos = navPath[navCurrentIndex + 1];
-
-                if (!currentPos || !nextPos || !Array.isArray(currentPos) || !Array.isArray(nextPos)) {
-                    // 数据异常，安全终止导航
-                    console.warn('导航路径数据异常，停止导航', {currentPos, nextPos, navCurrentIndex, navPathLength: navPath.length});
-                    finishNavigation();
-                    return;
-                }
-
-                // 计算两点之间的距离
-                const distance = calculateDistance(currentPos, nextPos);
-
-                // 如果距离很近，直接跳到下一个点
-                if (distance < 10) {
-                    navCurrentIndex++;
-                    if (navCharacterMarker) navCharacterMarker.setPosition(nextPos);
-
-                    // 更新进度
-                    navProgress = (navCurrentIndex / (navPath.length - 1)) * 100;
-                    document.getElementById('navProgressBar').style.width = `${navProgress}%`;
-
-                    // 导航完成
-                    if (navCurrentIndex >= navPath.length - 1) {
-                        finishNavigation();
-                        return;
-                    }
-
-                    // 计算人物朝向（面向下一个点）
-                    const angle = calculateAngle(currentPos, nextPos);
-                    // 修复：正确获取导航人物DOM元素并设置旋转
-                    const characterEl = navCharacterMarker && navCharacterMarker.getContent ? navCharacterMarker.getContent() : null;
-                    if (characterEl) {
-                        characterEl.style.transform = `rotate(${angle}deg)`;
-                    }
-
-                    requestAnimationFrame(animateNavigation);
-                    return;
-                }
-
-                // 计算移动步长
-                const stepLng = (nextPos[0] - currentPos[0]) / distance * speed;
-                const stepLat = (nextPos[1] - currentPos[1]) / distance * speed;
-
-                // 更新人物位置
-                const newPos = [currentPos[0] + stepLng, currentPos[1] + stepLat];
-                navPath[navCurrentIndex] = newPos; // 更新当前位置
-                if (navCharacterMarker) navCharacterMarker.setPosition(newPos);
-
-                // 更新进度
-                navProgress = (navCurrentIndex / (navPath.length - 1)) * 100;
-                document.getElementById('navProgressBar').style.width = `${navProgress}%`;
-
-                // 请求下一帧
-                navAnimationFrame = requestAnimationFrame(animateNavigation);
-            } catch (e) {
-                console.error('导航动画发生异常，已停止导航：', e);
-                finishNavigation();
-            }
-        }
-
-
-
-        // 9. 新增：计算两点之间的角度（用于人物朝向）
-        function calculateAngle(from, to) {
-            const dx = to[0] - from[0];
-            const dy = to[1] - from[1];
-            let angle = Math.atan2(dy, dx) * 180 / Math.PI;
-            return angle + 90; // 调整朝向，让人物面向移动方向
-        }
-
-        // 10. 新增：使用高德API获取真实道路路径
-        function getRealRoadPath(start, end, callback) {
-            AMap.plugin('AMap.Driving', function () {
-                // 清理上一次的 driving 覆盖（如果有）
-                try { if (drivingService) { drivingService.clear(); drivingService = null; } } catch (e) { console.debug('清理 drivingService 失败', e); }
-                const driving = new AMap.Driving({
-                    map: map,
-                    policy: AMap.DrivingPolicy.LEAST_TIME
-                });
-                // 保留引用以便 later 可以 clear()
-                try { drivingService = driving; } catch (e) { console.debug('设置 drivingService 失败', e); }
-
-                driving.search(
-                    new AMap.LngLat(start[0], start[1]),
-                    new AMap.LngLat(end[0], end[1]),
-                    (status, result) => {
-                        try {
-                            if (status === 'complete' && result && result.routes && result.routes.length > 0 && result.routes[0].steps) {
-                                const path = [];
-                                // 提取所有路径点（兼容 step.path 为数组或分号分隔字符串的情况）
-                                result.routes[0].steps.forEach(step => {
-                                    if (!step || !step.path) return;
-                                    if (Array.isArray(step.path)) {
-                                        step.path.forEach(pt => {
-                                            if (pt && pt.lng !== undefined && pt.lat !== undefined) {
-                                                path.push([parseFloat(pt.lng), parseFloat(pt.lat)]);
-                                            }
-                                        });
-                                    } else if (typeof step.path === 'string') {
-                                        const pairs = step.path.split(';');
-                                        pairs.forEach(pair => {
-                                            const [lngStr, latStr] = pair.split(',');
-                                            const lng = parseFloat(lngStr);
-                                            const lat = parseFloat(latStr);
-                                            if (!Number.isNaN(lng) && !Number.isNaN(lat)) {
-                                                path.push([lng, lat]);
-                                            }
-                                        });
-                                    }
-                                });
-
-                                // 如果成功解析到有效路径点则返回，否则兜底为直线
-                                if (path.length >= 2) {
-                                    callback(path);
-                                    return;
-                                }
-                            }
-                        } catch (e) {
-                            console.warn('解析 Driving 路径时出错，回退使用直线路径：', e);
-                        }
-
-                        // 如果获取不到真实路径或解析失败，使用直线路径兜底
-                        callback([start, end]);
-                    }
-                );
+        // ============ 搜索逻辑 ============
+        function searchNearby() {
+            if (!placeSearch) return;
+            const center = map.getCenter();
+            updateStatus('正在搜索周边公厕...');
+            placeSearch.searchNearBy('', center, 5000, function (status, result) {
+                handleSearchResult(status, result);
             });
         }
 
-        // 11. 开始导航（新增动画逻辑）
-        function startNavigation() {
-            if (!currentLocation) {
-                updateStatus('请先设置当前位置', true);
-                return;
-            }
-
-            const toiletId = document.getElementById('selectToilet').value;
-            if (!toiletId) {
-                updateStatus('请选择目标公厕', true);
-                return;
-            }
-
-            const toilet = NATIONAL_TOILET_DATA.find(t => t.id == toiletId);
-            if (!toilet) {
-                updateStatus('公厕信息不存在', true);
-                return;
-            }
-
-            isNavigating = true;
-            isPaused = false;
-            currentTransportMode = document.getElementById('transportMode').value;
-            const destination = [toilet.lng, toilet.lat];
-
-            // 显示导航信息
-            document.getElementById('navInfo').style.display = 'block';
-            document.getElementById('navDestination').textContent = toilet.name;
-            document.getElementById('navTransport').textContent = getTransportName(currentTransportMode);
-            document.getElementById('btnPauseNavigation').style.display = 'block';
-            document.getElementById('navProgress').style.display = 'block';
-            document.getElementById('navProgressBar').style.width = '0%';
-
-            // 获取真实道路路径
-            getRealRoadPath(currentLocation, destination, (path) => {
-                if (!Array.isArray(path) || path.length < 2) {
-                    console.warn('getRealRoadPath 返回不完整路径，使用直线路径兜底');
-                    path = [currentLocation, destination];
-                }
-
-                navPath = path;
-                navCurrentIndex = 0;
-                navProgress = 0;
-
-                // 绘制导航路线
-                drawNavigationRoute(path);
-
-                // 创建导航人物
-                createNavCharacter(currentLocation);
-
-                // 计算距离和时间
-                const distance = calculateDistance(currentLocation, destination);
-                const time = calculateTravelTime(distance, currentTransportMode);
-                document.getElementById('navDistance').textContent = formatDistance(distance);
-                document.getElementById('navTime').textContent = formatTime(time);
-
-                // 开始动画
-                animateNavigation();
-
-                updateStatus(`开始${getTransportName(currentTransportMode)}导航到: ${toilet.name}`);
-            });
-        }
-
-        // 12. 绘制导航路线（支持多路径点）
-        function drawNavigationRoute(path) {
-            if (navigationLine) {
-                map.remove(navigationLine);
-            }
-
-            navigationLine = new AMap.Polyline({
-                path: path,
-                strokeColor: "#3366FF",
-                strokeWeight: 6,
-                strokeOpacity: 0.8,
-                strokeStyle: "solid",
-                zIndex: 10 // 确保路线在最上层
-            });
-
-            map.add(navigationLine);
-            map.setFitView([navigationLine], { padding: [50, 50, 50, 50] });
-        }
-
-        // 13. 新增：暂停/继续导航
-        function togglePauseNavigation() {
-            isPaused = !isPaused;
-            const btn = document.getElementById('btnPauseNavigation');
-
-            if (isPaused) {
-                btn.innerHTML = '<<i>▶️</</i> 继续导航';
-                updateStatus('导航已暂停');
-                if (navAnimationFrame) {
-                    cancelAnimationFrame(navAnimationFrame);
-                }
-            } else {
-                btn.innerHTML = '<<i>⏸️</</i> 暂停导航';
-                updateStatus(`继续${getTransportName(currentTransportMode)}导航`);
-                animateNavigation();
-            }
-        }
-
-        // 14. 新增：完成导航
-        function finishNavigation() {
-            isNavigating = false;
-            updateStatus(`导航完成！已到达${document.getElementById('navDestination').textContent}`);
-
-            // 显示到达提示
-            infoWindow.setContent(`
-                <div style="padding: 12px; text-align: center;">
-                    <div style="font-size: 18px; color: #27ae60; margin-bottom: 8px;">🎉 导航完成！</div>
-                    <div style="color: #555;">已到达目标公厕</div>
-                </div>
-            `);
-            infoWindow.open(map, navPath[navPath.length - 1]);
-
-            // 清除动画和进度条
-            if (navAnimationFrame) {
-                cancelAnimationFrame(navAnimationFrame);
-            }
-            document.getElementById('navProgress').style.display = 'none';
-            document.getElementById('btnPauseNavigation').style.display = 'none';
-        }
-
-        // 15. 搜索城市公厕
         function searchCityToilets() {
             const city = document.getElementById('searchCity').value.trim();
-            if (!city) {
-                updateStatus('请输入城市名称', true);
-                return;
-            }
+            if (!city) { updateStatus('请输入城市名称', true); return; }
+            updateStatus(`正在搜索 ${city} 的公厕...`);
+            placeSearch.setCity(city);
+            placeSearch.search('', function (status, result) {
+                handleSearchResult(status, result);
+            });
+        }
 
-            updateStatus(`正在搜索${city}的公厕...`);
-
-            // 筛选该城市的公厕
-            const cityToilets = NATIONAL_TOILET_DATA.filter(toilet =>
-                toilet.city.includes(city)
-            );
-
-            if (cityToilets.length === 0) {
-                updateStatus(`未找到${city}的公厕数据`, true);
-                return;
-            }
-
-            // 清除标记并显示该城市公厕
+        function handleSearchResult(status, result) {
             clearMarkers();
-            cityToilets.forEach(toilet => {
-                const marker = createToiletMarker(toilet);
-                markers.push(marker);
-                map.add(marker);
-            });
+            if (status === 'complete' && result.info === 'OK') {
+                const pois = result.poiList.pois;
+                updateStatus(`找到 ${pois.length} 个公厕`);
+                document.getElementById('displayedToilets').innerText = pois.length;
 
-            // 如果当前显示热力图，更新热力图数据为当前城市
-            if (heatmapLayer) {
-                const heatmapData = cityToilets.map(toilet => ({
-                    lng: toilet.lng,
-                    lat: toilet.lat,
-                    count: toilet.popularity || 50
-                }));
-                // 修复：使用节流方式更新热力图数据，避免频繁 canvas 读取警告
-                scheduleHeatmapUpdate({ data: heatmapData, max: 100 });
-                updateStatus(`找到${city} ${cityToilets.length} 个公厕，已更新热力图（节流生效）`);
+                const select = document.getElementById('selectToilet');
+                select.innerHTML = '<option value="">请选择目标公厕</option>';
+
+                pois.forEach((poi, index) => {
+                    const marker = new AMap.Marker({
+                        position: poi.location,
+                        map: map,
+                        title: poi.name,
+                        icon: new AMap.Icon({
+                            size: new AMap.Size(32, 32),
+                            image: 'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-default.png',
+                            imageSize: new AMap.Size(32, 32)
+                        })
+                    });
+
+                    // 点击 Marker 的逻辑
+                    marker.on('click', () => {
+                        selectToilet(poi);
+
+                        // 【联动核心】同时更新下拉框选中状态
+                        select.value = index;
+
+                        infoWindow.setContent(`<div style="padding:5px"><b>${poi.name}</b><br>${poi.address}</div>`);
+                        infoWindow.open(map, poi.location);
+
+                        // 平滑移动视野到选中的厕所
+                        map.panTo(poi.location);
+                    });
+
+                    currentMarkers.push(marker);
+
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.text = poi.name;
+                    select.appendChild(option);
+                });
+                map.setFitView(currentMarkers);
+                if (heatmapLayer) updateHeatmapData(pois);
             } else {
-                updateStatus(`找到${city} ${cityToilets.length} 个公厕`);
+                updateStatus('未搜索到结果', true);
             }
-
-            // 调整地图视野
-            const lngs = cityToilets.map(t => t.lng);
-            const lats = cityToilets.map(t => t.lat);
-            const centerLng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
-            const centerLat = (Math.min(...lats) + Math.max(...lats)) / 2;
-
-            map.setCenter([centerLng, centerLat]);
-            map.setZoom(Math.min(12, CONFIG.MAX_ZOOM)); // 限制缩放级别
         }
 
-        // ============ 从高德POI检索公厕（JSONP） ============
-        // 优先使用 JS API 的 PlaceSearch（使用 JS Key 与 Security），失败则回退到 REST JSONP（使用 REST Key）
-        function fetchPOIPage(page = 1, timeout = 12000) {
+        function selectToilet(poi) {
+            selectedToilet = poi;
+            updateStatus(`已选中目的地: ${poi.name}`);
+        }
+
+        // ============ 导航逻辑 ============
+        // Google Polyline 解码器（返回 [lng, lat] 数组）
+        function decodeGooglePolyline(str) {
+            let index = 0, lat = 0, lng = 0, coordinates = [];
+            while (index < str.length) {
+                let b, shift = 0, result = 0;
+                do {
+                    b = str.charCodeAt(index++) - 63;
+                    result |= (b & 0x1f) << shift;
+                    shift += 5;
+                } while (b >= 0x20);
+                const dlat = ((result & 1) ? ~(result >> 1) : (result >> 1));
+                lat += dlat;
+
+                shift = 0;
+                result = 0;
+                do {
+                    b = str.charCodeAt(index++) - 63;
+                    result |= (b & 0x1f) << shift;
+                    shift += 5;
+                } while (b >= 0x20);
+                const dlng = ((result & 1) ? ~(result >> 1) : (result >> 1));
+                lng += dlng;
+
+                coordinates.push([lng / 1e5, lat / 1e5]);
+            }
+            return coordinates;
+        }
+
+        function useAMapPlanner(mode, dest) {
+            AMap.plugin(["AMap." + mode], function () {
+                let planner;
+                if (mode === 'Driving') planner = new AMap.Driving({ policy: AMap.DrivingPolicy.LEAST_TIME });
+                else if (mode === 'Walking') planner = new AMap.Walking();
+                else planner = new AMap.Riding();
+
+                planner.search(new AMap.LngLat(currentPos[0], currentPos[1]), dest, function (status, result) {
+                    if (status === 'complete') {
+                        if (result.routes && result.routes.length) {
+                            drawRoute(result.routes[0]);
+                        }
+                    } else {
+                        updateStatus('路径规划失败，可能距离过远或无路', true);
+                    }
+                });
+            });
+        }
+
+        // 通用 drawRoute（供 AMap Planner 使用） — 增强版：高亮路径、起终点与逐步指引
+        function drawRoute(route) {
+            // build path
+            let pathArr = [];
+            route.steps.forEach(step => { pathArr.push(...step.path); });
+
+            // clear previous
+            if (navPathLine) map.remove(navPathLine);
+            if (navMarker) { try { navMarker.stopMove(); } catch(e){} map.remove(navMarker); navMarker = null; }
+            if (navStartMarker) map.remove(navStartMarker); navStartMarker = null;
+            if (navEndMarker) map.remove(navEndMarker); navEndMarker = null;
+            if (navStepMarkers && navStepMarkers.length) { navStepMarkers.forEach(m => map.remove(m)); navStepMarkers = []; }
+
+            // draw polyline
+            navPathLine = new AMap.Polyline({
+                map: map,
+                path: pathArr,
+                strokeColor: "#ff5722",
+                strokeOpacity: 0.95,
+                strokeWeight: 6,
+                strokeStyle: 'solid'
+            });
+
+            // add start & end markers
+            if (pathArr.length) {
+                const start = pathArr[0];
+                const end = pathArr[pathArr.length - 1];
+                navStartMarker = new AMap.Marker({ map: map, position: start, content: `<div style="background:#2ecc71;color:#fff;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-weight:bold;">起</div>`, offset: new AMap.Pixel(-15,-15), zIndex: 999 });
+                navEndMarker = new AMap.Marker({ map: map, position: end, content: `<div style="background:#e74c3c;color:#fff;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-weight:bold;">终</div>`, offset: new AMap.Pixel(-15,-15), zIndex: 999 });
+            }
+
+            // populate step list and create small markers for each step
+            const navStepsEl = document.getElementById('navSteps');
+            if (navStepsEl) {
+                navStepsEl.innerHTML = '';
+                const ol = document.createElement('ol');
+                ol.style.paddingLeft = '18px';
+                route.steps.forEach((s, i) => {
+                    const instr = s.instruction || s.action || ('第' + (i+1) + '步');
+                    const li = document.createElement('li');
+                    li.style.marginBottom = '6px';
+                    const distText = s.distance ? (s.distance + 'm') : '';
+                    li.innerHTML = `${instr} <span style="color:#888;font-size:12px">${distText}</span>`;
+                    li.onclick = () => { if (s.path && s.path.length) map.setCenter(s.path[0]); };
+                    ol.appendChild(li);
+
+                    // step marker at first coord of step
+                    if (s.path && s.path.length) {
+                        const p = s.path[0];
+                        const mk = new AMap.Marker({ map: map, position: p, content: `<div style="width:18px;height:18px;border-radius:9px;background:#3498db;opacity:0.9;border:2px solid white;"></div>`, offset: new AMap.Pixel(-9,-9), zIndex: 990 });
+                        mk.on('click', () => { infoWindow.setContent(`<div style="padding:6px">${instr}<br>${distText}</div>`); infoWindow.open(map, p); });
+                        navStepMarkers.push(mk);
+                    }
+                });
+                navStepsEl.appendChild(ol);
+                navStepsEl.style.display = 'block';
+            }
+
+            // set destination texts
+            const dist = route.distance > 1000 ? (route.distance / 1000).toFixed(1) + 'km' : route.distance + 'm';
+            const time = Math.ceil(route.time / 60) + '分钟';
+            document.getElementById('navDestination').innerText = selectedToilet ? selectedToilet.name : '-';
+            document.getElementById('navDistance').innerText = dist;
+            document.getElementById('navTime').innerText = time;
+
+            // animate moving marker
+            const speed = document.getElementById('transportMode').value === 'Driving' ? 500 : 80;
+            if (pathArr.length) {
+                navMarker = new AMap.Marker({ map: map, position: pathArr[0], icon: new AMap.Icon({ size: new AMap.Size(26,26), image: "https://webapi.amap.com/images/car.png", imageSize: new AMap.Size(26,26) }), offset: new AMap.Pixel(-13,-13) });
+                navMarker.moveAlong(pathArr, { speed: speed, autoRotation: true });
+            }
+
+            // fit view
+            const fitItems = [navPathLine];
+            if (currentLocationMarker) fitItems.push(currentLocationMarker);
+            if (navStartMarker) fitItems.push(navStartMarker);
+            if (navEndMarker) fitItems.push(navEndMarker);
+            map.setFitView(fitItems);
+
+            updateStatus('导航模拟开始...');
+        }
+
+        // 安全触发 Marker 点击的 helper（兼容多个地图实现）
+        function triggerMarkerClick(marker) {
+            try {
+                if (!marker) return;
+                if (typeof marker === 'object') {
+                    if (window.AMap && AMap.event && typeof AMap.event.trigger === 'function') {
+                        AMap.event.trigger(marker, 'click');
+                        return;
+                    }
+                    if (typeof marker.emit === 'function') { marker.emit('click'); return; }
+                    if (typeof marker.fireEvent === 'function') { marker.fireEvent('click'); return; }
+                    // 最后尝试调用 marker 的 click 回调（若设置了 _events）
+                    if (marker._events && marker._events.click && typeof marker._events.click.forEach === 'function') {
+                        marker._events.click.forEach(fn => { try { fn(); } catch (e) { /* ignore */ } });
+                    }
+                }
+            } catch (err) {
+                console.warn('triggerMarkerClick failed', err);
+            }
+        }
+
+        function startNavigation() {
+            if (!currentPos) { alert('请先设置当前位置（点击输入框手动选点）'); return; }
+            if (!selectedToilet) { alert('请先在地图上选择一个公厕'); return; }
+
+            const mode = document.getElementById('transportMode').value;
+            const dest = selectedToilet.location;
+
+            updateStatus(`正在规划 ${mode} 路线...`);
+            document.getElementById('navInfo').style.display = 'block';
+            const navStepsEl = document.getElementById('navSteps');
+            navStepsEl.style.display = 'none';
+            navStepsEl.innerHTML = '';
+
+            if (navPathLine) map.remove(navPathLine);
+            if (navMarker) { navMarker.stopMove(); map.remove(navMarker); }
+
+            if (GOOGLE_API_KEY && GOOGLE_API_KEY !== 'YOUR_GOOGLE_API_KEY_HERE') {
+                const origin = `${currentPos[1]},${currentPos[0]}`; // lat,lng
+                const destination = `${dest.lat},${dest.lng}`;
+                const modeMap = { Driving: 'driving', Walking: 'walking', Riding: 'bicycling' };
+                const modeParam = modeMap[mode] || 'driving';
+                const url = encodeURI(`https://maps.googleapis.com/maps/api/directions/json?origin=${origin}&destination=${destination}&mode=${modeParam}&key=${GOOGLE_API_KEY}`);
+
+                fetch(url).then(res => res.json()).then(data => {
+                    if (data.status === 'OK' && data.routes && data.routes.length) {
+                        const route = data.routes[0];
+                        const overview = route.overview_polyline && route.overview_polyline.points;
+                        const pathArr = overview ? decodeGooglePolyline(overview) : [];
+
+                        navPathLine = new AMap.Polyline({
+                            map: map,
+                            path: pathArr,
+                            strokeColor: "#28F",
+                            strokeOpacity: 0.8,
+                            strokeWeight: 6
+                        });
+                        map.setFitView([navPathLine, currentLocationMarker]);
+
+                        const leg = route.legs[0];
+                        const dist = leg.distance.value > 1000 ? (leg.distance.value / 1000).toFixed(1) + 'km' : leg.distance.value + 'm';
+                        const time = Math.ceil(leg.duration.value / 60) + '分钟';
+                        document.getElementById('navDestination').innerText = selectedToilet.name;
+                        document.getElementById('navDistance').innerText = dist;
+                        document.getElementById('navTime').innerText = time;
+
+                        let list = '<ol style="padding-left:18px; margin:6px 0;">';
+                        // clear previous step markers
+                        if (navStepMarkers && navStepMarkers.length) { navStepMarkers.forEach(m=>map.remove(m)); navStepMarkers = []; }
+                        if (navStartMarker) map.remove(navStartMarker); navStartMarker = null;
+                        if (navEndMarker) map.remove(navEndMarker); navEndMarker = null;
+
+                        leg.steps.forEach((s, idx) => {
+                            const text = s.html_instructions.replace(/<[^>]+>/g, '');
+                            list += `<li style="margin-bottom:6px; cursor:pointer;" onclick="map.setCenter(new AMap.LngLat(${s.start_location.lng}, ${s.start_location.lat}))">${text} <span style="color:#888; font-size:12px;">(${s.distance.text}, ${s.duration.text})</span></li>`;
+
+                            // add a small marker at start_location
+                            const mk = new AMap.Marker({ map: map, position: [s.start_location.lng, s.start_location.lat], content: `<div style="width:16px;height:16px;border-radius:8px;background:#3498db;border:2px solid white;"></div>`, offset: new AMap.Pixel(-8,-8) });
+                            mk.on('click', ()=>{ infoWindow.setContent(`<div style="padding:6px">${text}<br>${s.distance.text}, ${s.duration.text}</div>`); infoWindow.open(map, [s.start_location.lng, s.start_location.lat]); });
+                            navStepMarkers.push(mk);
+                        });
+                        list += '</ol>';
+                        navStepsEl.innerHTML = list;
+                        navStepsEl.style.display = 'block';
+
+                        // start & end markers
+                        if (pathArr.length) {
+                            const start = pathArr[0];
+                            const end = pathArr[pathArr.length-1];
+                            navStartMarker = new AMap.Marker({ map: map, position: start, content: `<div style="background:#2ecc71;color:#fff;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-weight:bold;">起</div>`, offset: new AMap.Pixel(-15,-15) });
+                            navEndMarker = new AMap.Marker({ map: map, position: end, content: `<div style="background:#e74c3c;color:#fff;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-weight:bold;">终</div>`, offset: new AMap.Pixel(-15,-15) });
+                        }
+
+                        const speed = document.getElementById('transportMode').value === 'Driving' ? 500 : 80;
+                        if (pathArr.length) {
+                            navMarker = new AMap.Marker({
+                                map: map,
+                                position: pathArr[0],
+                                icon: new AMap.Icon({
+                                    size: new AMap.Size(26, 26),
+                                    image: "https://webapi.amap.com/images/car.png",
+                                    imageSize: new AMap.Size(26, 26),
+                                }),
+                                offset: new AMap.Pixel(-13, -13),
+                            });
+
+                            navMarker.moveAlong(pathArr, {
+                                speed: speed,
+                                autoRotation: true,
+                            });
+                        }
+
+                        // fit view
+                        const fitItems = [navPathLine];
+                        if (currentLocationMarker) fitItems.push(currentLocationMarker);
+                        if (navStartMarker) fitItems.push(navStartMarker);
+                        if (navEndMarker) fitItems.push(navEndMarker);
+                        map.setFitView(fitItems);
+
+                        updateStatus('导航规划完成（Google Directions）');
+                    } else {
+                        updateStatus('Google 路线规划失败，回退到高德规划', true);
+                        useAMapPlanner(mode, dest);
+                    }
+                }).catch(err => {
+                    console.error(err);
+                    updateStatus('请求 Google Directions 出错，回退到高德规划', true);
+                    useAMapPlanner(mode, dest);
+                });
+            } else {
+                useAMapPlanner(mode, dest);
+            }
+        }
+
+        function stopNavigation() {
+            if (navMarker) navMarker.stopMove();
+            if (navPathLine) map.remove(navPathLine);
+            if (navMarker) map.remove(navMarker);
+            document.getElementById('navInfo').style.display = 'none';
+            const navStepsEl = document.getElementById('navSteps');
+            if (navStepsEl) { navStepsEl.innerHTML = ''; navStepsEl.style.display = 'none'; }
+            updateStatus('导航结束');
+        }
+
+        // ============ WMS Overlay Functions ============
+        function createWMSOverlay() {
+            if (wmsOverlayEl) return;
+            const container = document.getElementById('mapContainer');
+            wmsOverlayEl = document.createElement('div');
+            wmsOverlayEl.className = 'wms-overlay';
+            wmsImgEl = document.createElement('img');
+            wmsImgEl.alt = 'WMS Overlay';
+            wmsImgEl.style.opacity = document.getElementById('wmsOpacity') ? document.getElementById('wmsOpacity').value : 0.8;
+            wmsImgEl.onerror = function () { updateStatus('WMS 加载失败，请检查 CORS 或 URL', true); };
+            wmsOverlayEl.appendChild(wmsImgEl);
+            container.appendChild(wmsOverlayEl);
+            updateWMSOverlay();
+            window.addEventListener('resize', updateWMSOverlay);
+        }
+
+        function removeWMSOverlay() {
+            if (!wmsOverlayEl) return;
+            wmsOverlayEl.remove();
+            wmsOverlayEl = null;
+            wmsImgEl = null;
+            window.removeEventListener('resize', updateWMSOverlay);
+        }
+
+        async function _loadImageByUrl(url) {
             return new Promise((resolve, reject) => {
-                // 内部：REST JSONP 回退实现
-                function doJSONPFallback() {
-                    const callbackName = 'amap_poi_cb_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
-                    let script = document.createElement('script');
-
-                    // 超时保护
-                    const to = setTimeout(() => {
-                        try { delete window[callbackName]; } catch (e) {}
-                        if (script && document.body.contains(script)) document.body.removeChild(script);
-                        reject(new Error('JSONP请求超时'));
-                    }, timeout);
-
-                    window[callbackName] = function (data) {
-                        try { delete window[callbackName]; } catch (e) {}
-                        if (script && document.body.contains(script)) document.body.removeChild(script);
-                        clearTimeout(to);
-                        resolve(data);
-                    };
-
-                    const url = `https://restapi.amap.com/v3/place/text?key=${CONFIG.AMAP_REST_KEY}&keywords=%E5%8E%95%E6%89%AF&city=全国&offset=25&page=${page}&output=json&extensions=all&callback=${callbackName}`;
-                    console.debug('[POI] JSONP 回退 URL:', url);
-                    updateStatus(`使用 REST JSONP 回退（第${page}页），如失败请检查 REST Key 权限`, true);
-
-                    script.src = url;
-                    script.onerror = function (e) {
-                        try { delete window[callbackName]; } catch (ex) {}
-                        if (script && document.body.contains(script)) document.body.removeChild(script);
-                        clearTimeout(to);
-                        reject(new Error('JSONP加载失败（可能Key无权限或被限制）'));
-                    };
-
-                    document.body.appendChild(script);
-                }
-
-                // 优先：使用 AMap JS SDK PlaceSearch（避免 JSONP & REST Key 暴露）
-                if (typeof AMap !== 'undefined') {
-                    // helper to attempt a PlaceSearch call
-                    function attemptPlaceSearch() {
-                        try {
-                            updateStatus(`使用 JS API (PlaceSearch) 查询第${page}页（使用 JS Key）`);
-                            const placeSearch = new AMap.PlaceSearch({ pageSize: 25, pageIndex: page, city: '全国', extensions: 'all' });
-                            let finished = false;
-                            const toPlace = setTimeout(() => {
-                                if (finished) return;
-                                finished = true;
-                                reject(new Error('PlaceSearch 请求超时'));
-                            }, timeout);
-
-                            placeSearch.search('厕所', (status, result) => {
-                                if (finished) return;
-                                finished = true;
-                                clearTimeout(toPlace);
-                                if (status === 'complete' && result && result.poiList && result.poiList.pois) {
-                                    return resolve({ pois: result.poiList.pois });
-                                } else {
-                                    console.warn('[POI] PlaceSearch 失败：', status, result);
-                                    updateStatus(`PlaceSearch 失败（${status}），尝试使用 REST JSONP 回退`, true);
-                                    return doJSONPFallback();
-                                }
-                            });
-                        } catch (e) {
-                            console.warn('[POI] PlaceSearch 调用异常，回退 JSONP：', e);
-                            updateStatus('PlaceSearch 异常，尝试使用 REST JSONP 回退', true);
-                            return doJSONPFallback();
-                        }
-                    }
-
-                    // 如果 PlaceSearch 不可用，尝试动态加载插件后再尝试
-                    if (typeof AMap.PlaceSearch !== 'function' && AMap.plugin) {
-                        let pluginLoaded = false;
-                        try {
-                            AMap.plugin(['AMap.PlaceSearch'], function () {
-                                pluginLoaded = true;
-                                attemptPlaceSearch();
-                            });
-                        } catch (e) {
-                            console.warn('加载 PlaceSearch 插件失败:', e);
-                        }
-
-                        // 超时回退
-                        setTimeout(() => {
-                            if (!pluginLoaded) {
-                                updateStatus('PlaceSearch 插件加载超时，使用 REST JSONP 回退', true);
-                                doJSONPFallback();
-                            }
-                        }, Math.min(4000, timeout));
-                        return;
-                    }
-
-                    // 如果 PlaceSearch 已存在，直接尝试
-                    if (typeof AMap.PlaceSearch === 'function') {
-                        attemptPlaceSearch();
-                        return;
-                    }
-                }
-
-                // 如果 JS SDK 不可用，直接使用 REST JSONP
-                updateStatus('AMap JS API (PlaceSearch) 不可用，使用 REST JSONP 回退', true);
-                doJSONPFallback();
+                if (!wmsImgEl) return reject(new Error('no img element'));
+                const onLoad = function() { cleanup(); resolve(true); };
+                const onError = function() { cleanup(); reject(new Error('img load error')); };
+                function cleanup(){ wmsImgEl.onload = null; wmsImgEl.onerror = null; }
+                wmsImgEl.onload = onLoad;
+                wmsImgEl.onerror = onError;
+                wmsImgEl.src = url + '&_t=' + Date.now();
             });
         }
 
-        async function fetchAllToiletsFromGaode(maxPages = 8) {
-            updateStatus('正在从高德检索公厕数据…');
-            NATIONAL_TOILET_DATA.length = 0; // 清空旧数据
-            const skippedPOIs = []; // 收集无效位置的 POI，稍后尝试地理编码补全
-            // 暴露以便 UI 手动触发补全
-            window._skippedPOIs = skippedPOIs;
-            try {
-                for (let page = 1; page <= maxPages; page++) {
-                    try {
-                        const data = await fetchPOIPage(page);
-                        if (!data || !data.pois || data.pois.length === 0) break;
-                        data.pois.forEach((poi, idx) => {
-                            const loc = (poi.location && poi.location.split) ? poi.location.split(',') : [];
-                            const lng = parseFloat(loc[0]);
-                            const lat = parseFloat(loc[1]);
-
-                            // 若经纬度缺失或非法，先记录以便后续地理编码补全
-                            if (Number.isNaN(lng) || Number.isNaN(lat)) {
-                                console.warn('跳过无效位置的 POI（待补全）:', poi && (poi.name || poi.id));
-                                skippedPOIs.push(poi);
-                                return;
-                            }
-
-                            NATIONAL_TOILET_DATA.push({
-                                id: poi.id || (`gaode_${page}_${idx}`),
-                                name: poi.name || '未知公厕',
-                                lng, lat,
-                                city: poi.pname || poi.cityname || poi.adname || '',
-                                type: 'general',
-                                popularity: 70,
-                                address: poi.address || ''
-                            });
-                        });
-                        // 如果本页不到25条，说明最后一页
-                        if (data.pois.length < 25) break;
-                        await new Promise(r => setTimeout(r, 200)); // 小延迟，避免被限流
-                    } catch (e) {
-                        console.warn('第' + page + '页拉取失败:', e.message || e);
-                        updateStatus(`第${page}页拉取失败：${e.message || e}（请检查JS Key/REST Key权限或网络）`, true);
-                        break;
-                    }
-                }
-
-                // 对于无坐标的 POI，尝试用 AMap JS Geocoder 补全（优先使用 JS Key）
-                if (skippedPOIs.length > 0) {
-                    console.debug('[POI] 发现未含坐标的 POI 数量：', skippedPOIs.length);
-                    updateStatus(`发现 ${skippedPOIs.length} 条 POI 无坐标，正在尝试通过 JS Geocoder 补全…`);
-                    try {
-                        const geocodedCount = await geocodeMissingPOIs(skippedPOIs, 200);
-                        if (geocodedCount > 0) {
-                            updateStatus(`通过地理编码补全 ${geocodedCount} 条 POI 的位置`);
-                        } else {
-                            updateStatus(`尝试使用 JS Geocoder 补全坐标失败（${skippedPOIs.length} 条），请检查 JS Key 权限或考虑后端批量地理编码`, true);
-                        }
-                        // 显示调试面板，便于了解哪些 POI 尚未补全
-                        showDebugPanel(skippedPOIs, geocodedCount);
-                    } catch (e) {
-                        console.warn('地理编码补全过程中发生错误：', e);
-                    }
-                }
-
-                if (NATIONAL_TOILET_DATA.length === 0) {
-                    updateStatus('未能从高德检索到公厕数据（PlaceSearch/REST JSONP 均失败）。请检查：1) JS Key 权限与安全配置（AMAP_JS_KEY + AMAP_JS_SECURITY）；2) REST Key 权限（AMAP_REST_KEY）；或考虑使用后端代理以保护 key。', true);
-                    return 0;
-                }
-
-                // 填充下拉并显示
-                populateToiletSelect();
-                loadAllToilets();
-                updateStatus(`从高德成功检索 ${NATIONAL_TOILET_DATA.length} 个公厕`);
-                return NATIONAL_TOILET_DATA.length;
-            } catch (e) {
-                updateStatus('从高德检索公厕失败: ' + (e.message || e), true);
-                return 0;
-            }
-        }
-
-        function populateToiletSelect() {
-            const toiletSelect = document.getElementById('selectToilet');
-            toiletSelect.innerHTML = '<option value="">请选择目标公厕</option>';
-            NATIONAL_TOILET_DATA.forEach(toilet => {
-                const option = document.createElement('option');
-                option.value = toilet.id;
-                option.textContent = `${toilet.name} (${toilet.city}) - 热度: ${toilet.popularity}`;
-                toiletSelect.appendChild(option);
-            });
-        }
-
-        // 显示调试面板，用于列出被跳过和补全失败的 POI
-        function showDebugPanel(skippedList, lastGeocodedCount = 0) {
-            const panel = document.getElementById('debugPanel');
-            const summary = document.getElementById('debugSummary');
-            const details = document.getElementById('debugDetails');
-            if (!panel) return;
-            panel.style.display = 'block';
-            const total = skippedList ? skippedList.length : 0;
-            summary.textContent = `跳过无效位置的 POI: ${total} 条（最近一次补全成功 ${lastGeocodedCount} 条）`;
-            if (!skippedList || skippedList.length === 0) {
-                details.textContent = '无';
-                return;
-            }
-            let txt = '';
-            skippedList.forEach((p, i) => {
-                txt += `${i + 1}. ${p.name || p.id} | 地址: ${p.address || ''} | 城市: ${p.pname || p.cityname || p.adname || ''}\n`;
-            });
-            details.textContent = txt;
-        }
-
-        // ===== WMS 探测结果面板支持 =====
-        function updateWmsProbePanel() {
-            const panel = document.getElementById('wmsProbePanel');
-            const summary = document.getElementById('wmsProbeSummary');
-            const details = document.getElementById('wmsProbeDetails');
-            if (!panel || !summary || !details) return;
-            panel.style.display = 'block';
-            try {
-                const s = [];
-                if (wmsConfig && wmsConfig.version) s.push(`VERSION=${wmsConfig.version}`);
-                if (wmsConfig && wmsConfig.crs) s.push(`${wmsConfig.crs}`);
-                if (wmsConfig && wmsConfig.layer) s.push(`LAYERS=${wmsConfig.layer}`);
-                summary.textContent = s.length ? `WMS 已选定： ${s.join(' , ')}` : 'WMS 探测：未运行或未返回结果';
-            } catch (e) { summary.textContent = 'WMS 探测：获取信息失败'; }
-
-            // 显示最近探测日志
-            try {
-                const log = (window._qgisWmsProbeLog || []).slice(-40).reverse();
-                if (!log || log.length === 0) {
-                    details.textContent = '无探测日志';
-                } else {
-                    details.textContent = log.map((l, i) => `${i+1}. ${l.type} ${l.ok===false? 'FAILED':'OK'} ${l.status?('status='+l.status):''} ${l.note?l.note:''} ${l.error?l.error:''} ${l.url||''}`).join('\n');
-                }
-            } catch (e) { details.textContent = '读取探测日志失败'; }
-        }
-
-        function setupWmsUiBindings() {
-            try {
-                const chk = document.getElementById('chkUseWmsProxy');
-                const txt = document.getElementById('txtWmsProxyUrl');
-                const btn = document.getElementById('btnCopyWmsLog');
-                if (chk) {
-                    chk.addEventListener('change', () => {
-                        window._useWmsProxy = !!chk.checked;
-                        updateStatus(`WMS 代理已 ${window._useWmsProxy ? '启用' : '禁用'}`);
-                    });
-                }
-                if (txt) {
-                    txt.addEventListener('input', () => { window._wmsProxyUrl = txt.value.trim(); });
-                }
-                if (btn) {
-                    btn.addEventListener('click', async () => {
-                        const log = window._qgisWmsProbeLog || [];
-                        try {
-                            await navigator.clipboard.writeText(JSON.stringify(log, null, 2));
-                            updateStatus('探测日志已复制到剪贴板');
-                        } catch (e) {
-                            console.warn('复制探测日志失败', e);
-                            updateStatus('复制探测日志失败：' + (e && e.message ? e.message : String(e)), true);
-                        }
-                    });
-                }
-            } catch (e) { console.debug('setupWmsUiBindings 异常', e); }
-        }
-
-        // ============ 工具函数 ============
-        // 新增：测试JS Key与REST Key（快速诊断）
-        function testKeys() {
-            updateStatus('正在测试Key：先测试 JS API（PlaceSearch），然后测试 REST JSONP...');
-
-            const results = [];
-
-            // 1) 测试 PlaceSearch（JS API）
-            const jsTest = new Promise((resolve) => {
-                if (typeof AMap !== 'undefined' && typeof AMap.PlaceSearch === 'function') {
-                    const ps = new AMap.PlaceSearch({ pageSize: 1, pageIndex: 1, city: '全国' });
-                    let to = setTimeout(() => {
-                        resolve({ type: 'js', success: false, msg: 'PlaceSearch 超时' });
-                    }, 6000);
-                    ps.search('厕所', (status, result) => {
-                        clearTimeout(to);
-                        if (status === 'complete' && result && result.poiList && result.poiList.pois) {
-                            resolve({ type: 'js', success: true, msg: `PlaceSearch 成功，返回 ${result.poiList.pois.length} 条` });
-                        } else {
-                            resolve({ type: 'js', success: false, msg: `PlaceSearch 返回：${status}` });
-                        }
-                    });
-                } else {
-                    resolve({ type: 'js', success: false, msg: 'AMap.PlaceSearch 不可用' });
-                }
-            });
-
-            // 2) 测试 REST JSONP（若关键词“厕所”无结果则自动尝试“公厕”）
-            const restTest = new Promise((resolve) => {
-                function doQuery(keyword, cbName, cbResolve) {
-                    window[cbName] = function (data) {
-                        try { delete window[cbName]; } catch (e) {}
-                        if (script && document.body.contains(script)) document.body.removeChild(script);
-                        cbResolve(data);
-                    };
-                    const script = document.createElement('script');
-                    const url = `https://restapi.amap.com/v3/place/text?key=${CONFIG.AMAP_REST_KEY}&keywords=${encodeURIComponent(keyword)}&city=全国&offset=1&page=1&output=json&extensions=all&callback=${cbName}`;
-                    console.debug('[KeyTest] REST URL:', url);
-                    script.src = url;
-                    script.onerror = function () {
-                        try { delete window[cbName]; } catch (e) {}
-                        if (script && document.body.contains(script)) document.body.removeChild(script);
-                        cbResolve({ error: 'JSONP 加载失败（可能 Key 无权限或被限制）' });
-                    };
-                    document.body.appendChild(script);
-                    setTimeout(() => {
-                        try { delete window[cbName]; } catch (e) {}
-                        if (script && document.body.contains(script)) document.body.removeChild(script);
-                        cbResolve({ error: 'JSONP 请求超时' });
-                    }, 7000);
-                }
-
-                // 先尝试“厕所”
-                doQuery('厕所', 'amap_test_cb_' + Date.now() + '_1', (res1) => {
-                    if (!res1 || res1.error) {
-                        return resolve({ type: 'rest', success: false, msg: res1 && res1.error ? res1.error : '未知错误' });
-                    }
-                    if (res1.pois && res1.pois.length > 0) {
-                        return resolve({ type: 'rest', success: true, msg: `JSONP 成功，POIs: ${res1.pois.length}` });
-                    }
-                    // 若 0 结果，尝试“公厕”关键词
-                    doQuery('公厕', 'amap_test_cb_' + Date.now() + '_2', (res2) => {
-                        if (!res2 || res2.error) {
-                            return resolve({ type: 'rest', success: false, msg: res2 && res2.error ? res2.error : '第二次查询未知错误' });
-                        }
-                        if (res2.pois && res2.pois.length > 0) {
-                            return resolve({ type: 'rest', success: true, msg: `JSONP 成功（使用“公厕”），POIs: ${res2.pois.length}` });
-                        }
-                        return resolve({ type: 'rest', success: false, msg: 'JSONP 成功但未返回 POIs（两个关键词均未命中）' });
-                    });
-                });
-            });
-
-            Promise.all([jsTest, restTest]).then(results => {
-                let finalMsg = [];
-                let isError = false;
-                results.forEach(r => {
-                    finalMsg.push(`${r.type.toUpperCase()}: ${r.success ? '成功' : '失败'} - ${r.msg}`);
-                    if (!r.success) isError = true;
-                    console.log('[KeyTest]', r);
-                });
-                updateStatus(`Key 测试结果：${finalMsg.join(' | ')}`, isError);
-            });
-        }
-
-        // 尝试使用 AMap JS Geocoder 补齐缺失坐标的 POI（返回成功补全的数量）
-        // restGeocodeAddress 使用 REST JSONP 请求地理编码（返回 {lng,lat} 或 null）
-        function restGeocodeAddress(addr, timeout = 7000) {
-            return new Promise((resolve) => {
-                if (!addr) return resolve(null);
-                const cbName = 'amap_geo_cb_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
-                const script = document.createElement('script');
-                let resolved = false;
-                const to = setTimeout(() => {
-                    if (resolved) return;
-                    resolved = true;
-                    try { delete window[cbName]; } catch (e) {}
-                    if (script && document.body.contains(script)) document.body.removeChild(script);
-                    resolve(null);
-                }, timeout);
-
-                window[cbName] = function (data) {
-                    if (resolved) return;
-                    resolved = true;
-                    clearTimeout(to);
-                    try { delete window[cbName]; } catch (e) {}
-                    if (script && document.body.contains(script)) document.body.removeChild(script);
-                    try {
-                        if (data && data.geocodes && data.geocodes[0] && data.geocodes[0].location) {
-                            const loc = data.geocodes[0].location.split(',');
-                            const lng = parseFloat(loc[0]);
-                            const lat = parseFloat(loc[1]);
-                            if (!Number.isNaN(lng) && !Number.isNaN(lat)) {
-                                resolve({ lng, lat });
-                                return;
-                            }
-                        }
-                    } catch (e) { console.warn('解析 REST Geocode 返回异常', e); }
-                    resolve(null);
-                };
-
-                const url = `https://restapi.amap.com/v3/geocode/geo?key=${CONFIG.AMAP_REST_KEY}&address=${encodeURIComponent(addr)}&output=json&callback=${cbName}`;
-                console.debug('[REST Geocode] URL:', url);
-                script.src = url;
-                script.onerror = function () {
-                    try { delete window[cbName]; } catch (e) {}
-                    if (script && document.body.contains(script)) document.body.removeChild(script);
-                    resolve(null);
-                };
-                document.body.appendChild(script);
-            });
-        }
-
-        async function geocodeMissingPOIs(pendingList, maxAttempts = 200, useRestFallback = false) {
-            if (!pendingList || pendingList.length === 0) return 0;
-            if (typeof AMap === 'undefined') {
-                console.warn('AMap JS 未加载，无法进行地理编码（仅可使用 REST 回退）');
-                // 若 AMap 未加载但允许 REST 回退，我们可以尝试 REST 方法
-                if (!useRestFallback) return 0;
-            }
-
-            // 尝试加载 Geocoder 插件（如果可用）
-            if (typeof AMap !== 'undefined' && typeof AMap.Geocoder !== 'function' && AMap.plugin) {
-                await new Promise((res) => {
-                    let loaded = false;
-                    try {
-                        AMap.plugin(['AMap.Geocoder'], function () { loaded = true; res(); });
-                    } catch (e) { console.warn('加载 Geocoder 插件失败', e); res(); }
-                    setTimeout(() => { if (!loaded) res(); }, 3000);
-                });
-            }
-
-            const hasJsGeocoder = (typeof AMap !== 'undefined' && typeof AMap.Geocoder === 'function');
-            if (!hasJsGeocoder && !useRestFallback) {
-                console.warn('既没有 JS Geocoder，也未允许 REST 回退，无法补全坐标');
-                return 0;
-            }
-
-            const geocoder = hasJsGeocoder ? new AMap.Geocoder({ city: '全国' }) : null;
-            let successCount = 0;
-
-            const limit = Math.min(pendingList.length, maxAttempts);
-            for (let i = 0; i < limit; i++) {
-                const poi = pendingList[i];
-                const addrParts = [poi.name, poi.address, poi.pname, poi.cityname, poi.adname].filter(Boolean).join(' ');
-                const addr = addrParts || poi.name || '';
-                let loc = null;
-
+        async function _setImageViaProxy(originalUrl) {
+            // Try setting the <img> src to each proxy endpoint (many public proxies allow image GETs)
+            for (let p of _wmsProxies) {
+                let proxyUrl;
                 try {
-                    if (hasJsGeocoder) {
-                        loc = await new Promise((resolve) => {
-                            let called = false;
-                            const to = setTimeout(() => { if (!called) { called = true; resolve(null); } }, 5000);
-                            geocoder.getLocation(addr, (status, result) => {
-                                if (called) return;
-                                called = true; clearTimeout(to);
-                                if (status === 'complete' && result && result.geocodes && result.geocodes[0] && result.geocodes[0].location) {
-                                    resolve(result.geocodes[0].location);
-                                } else {
-                                    resolve(null);
-                                }
-                            });
-                        });
+                    if (p.includes('weserv.nl')) {
+                        // images.weserv expects the URL without protocol
+                        const cleaned = originalUrl.replace(/^https?:\/\//, '');
+                        proxyUrl = `${p}${encodeURIComponent(cleaned)}`;
+                    } else {
+                        proxyUrl = p + encodeURIComponent(originalUrl);
                     }
-
-                    // 如果 JS Geocoder 没返回且允许 REST 回退，则尝试 REST JSONP
-                    if ((!loc || loc == null) && useRestFallback) {
-                        const restLoc = await restGeocodeAddress(addr);
-                        if (restLoc && restLoc.lng !== undefined && restLoc.lat !== undefined) {
-                            loc = `${restLoc.lng},${restLoc.lat}`;
-                        }
-                    }
-
-                    if (loc && loc.lng === undefined && typeof loc === 'string') {
-                        // JS Geocoder 返回 'lng,lat' 字符串
-                        const parts = loc.split(',');
-                        const lng = parseFloat(parts[0]);
-                        const lat = parseFloat(parts[1]);
-                        if (!Number.isNaN(lng) && !Number.isNaN(lat)) {
-                            NATIONAL_TOILET_DATA.push({
-                                id: poi.id || (`gaode_geo_${i}`),
-                                name: poi.name || '未知公厕',
-                                lng: lng,
-                                lat: lat,
-                                city: poi.pname || poi.cityname || poi.adname || '',
-                                type: 'general',
-                                popularity: 50,
-                                address: poi.address || ''
-                            });
-                            // 标记为已补全
-                            try { poi._geocoded = true; } catch (e) {}
-                            successCount++;
-                            continue;
-                        }
-                    }
-
-                    // 如果 restGeocodeAddress 返回对象形式
-                    if (loc && typeof loc === 'object' && loc.lng !== undefined && loc.lat !== undefined) {
-                        const lng = parseFloat(loc.lng);
-                        const lat = parseFloat(loc.lat);
-                        if (!Number.isNaN(lng) && !Number.isNaN(lat)) {
-                            NATIONAL_TOILET_DATA.push({
-                                id: poi.id || (`gaode_geo_${i}`),
-                                name: poi.name || '未知公厕',
-                                lng, lat,
-                                city: poi.pname || poi.cityname || poi.adname || '',
-                                type: 'general',
-                                popularity: 50,
-                                address: poi.address || ''
-                            });
-                            // 标记为已补全
-                            try { poi._geocoded = true; } catch (e) {}
-                            successCount++;
-                            continue;
-                        }
-                    }
-
-                    console.warn('Geocode 未返回位置（已尝试）：', poi && (poi.name || poi.id));
-                } catch (e) {
-                    console.warn('Geocode 异常:', e);
+                } catch (err) {
+                    console.warn('proxy url build failed', p, err);
+                    continue;
                 }
 
-                // 小延迟，避免速率限制
-                await new Promise(r => setTimeout(r, 200));
-            }
+                // capture the current img reference so cleanup doesn't touch a removed element
+                const img = wmsImgEl;
+                if (!img) { console.warn('no wmsImgEl present, abort proxy attempt'); continue; }
 
-            // 更新全局 skipped 列表，移除已成功补全的项
+                const ok = await new Promise((resolve) => {
+                    let done = false;
+                    const timer = setTimeout(() => { if (!done) { done = true; cleanup(); resolve(false); } }, 8000);
+
+                    function cleanup(){ try { if (img) { img.onload = null; img.onerror = null; } } catch(e){} clearTimeout(timer); }
+
+                    const onload = function() { if (!done) { done = true; cleanup(); resolve(true); } };
+                    const onerror = function() { if (!done) { done = true; cleanup(); resolve(false); } };
+
+                    try {
+                        // If img was removed in the meantime, abort
+                        if (!img) { cleanup(); resolve(false); return; }
+                        img.onload = onload;
+                        img.onerror = onerror;
+                        img.src = proxyUrl + '&_t=' + Date.now();
+                    } catch (err) { cleanup(); resolve(false); }
+                });
+
+                if (ok) {
+                    try { if (wmsImgEl) wmsImgEl.style.opacity = document.getElementById('wmsOpacity') ? document.getElementById('wmsOpacity').value : 0.8; } catch(e){}
+                    updateStatus(`WMS 通过代理加载成功： ${p}`);
+                    return true;
+                }
+                console.warn('proxy image attempt failed for', proxyUrl || p);
+            }
+            return false;
+        }
+
+        async function updateWMSOverlay() {
             try {
-                if (window._skippedPOIs && Array.isArray(window._skippedPOIs)) {
-                    window._skippedPOIs = window._skippedPOIs.filter(p => !p._geocoded);
+                if (!wmsOverlayEl || !wmsImgEl || !map) return;
+                const base = (document.getElementById('wmsBase') && document.getElementById('wmsBase').value) || WMS_BASE;
+                // 支持下拉选择优先，选中“其他”时使用自定义输入框
+                const sel = document.getElementById('wmsLayerSelect');
+                const custom = document.getElementById('wmsLayerName');
+                let layers = 'fx';
+                if (sel && sel.value && sel.value !== '__other__') layers = sel.value;
+                else if (custom && custom.value) layers = custom.value;
+                const container = document.getElementById('mapContainer');
+                const width = Math.max(256, Math.round(container.clientWidth));
+                const height = Math.max(256, Math.round(container.clientHeight));
+                const bounds = map.getBounds();
+                if (!bounds) return;
+                const sw = bounds.getSouthWest();
+                const ne = bounds.getNorthEast();
+                const wmsUseProxy = document.getElementById('wmsUseProxy') && document.getElementById('wmsUseProxy').checked;
+
+                function lonLatToMercator(lng, lat) {
+                    const x = lng * 20037508.34 / 180;
+                    let y = Math.log(Math.tan((90 + lat) * Math.PI / 360)) / (Math.PI / 180);
+                    y = y * 20037508.34 / 180;
+                    return { x: x, y: y };
                 }
-            } catch (e) {
-                console.warn('更新 _skippedPOIs 时发生错误', e);
+
+                const swM = lonLatToMercator(sw.lng, sw.lat);
+                const neM = lonLatToMercator(ne.lng, ne.lat);
+                const bbox3857 = `${swM.x},${swM.y},${neM.x},${neM.y}`;
+                const bbox4326 = `${sw.lng},${sw.lat},${ne.lng},${ne.lat}`;
+
+                const params3857 = `SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=${encodeURIComponent(layers)}&STYLES=&FORMAT=image/png&TRANSPARENT=true&WIDTH=${width}&HEIGHT=${height}&CRS=EPSG:3857&BBOX=${bbox3857}`;
+                const url3857 = `${base}?${params3857}`;
+                const url4326 = `${base}?SERVICE=WMS&REQUEST=GetMap&VERSION=1.1.1&LAYERS=${encodeURIComponent(layers)}&STYLES=&FORMAT=image/png&TRANSPARENT=true&WIDTH=${width}&HEIGHT=${height}&SRS=EPSG:4326&BBOX=${bbox4326}`;
+
+                // revoke previous blob url
+                if (_wmsPrevBlobUrl) { try { URL.revokeObjectURL(_wmsPrevBlobUrl); } catch(e){} _wmsPrevBlobUrl = null; }
+
+                // Try direct 3857 then 4326, unless proxy requested; then try proxy versions
+                if (!wmsUseProxy) {
+                    try {
+                        await _loadImageByUrl(url3857);
+                        updateStatus('WMS 3857 已加载');
+                        return;
+                    } catch (e1) {
+                        console.warn('WMS 3857 加载失败，尝试 4326 回退', e1);
+                        try { await _loadImageByUrl(url4326); updateStatus('WMS 4326 已加载'); return; } catch (e2) { console.warn('WMS 4326 加载失败', e2); }
+                        // fallthrough to proxy attempts
+                    }
+                }
+
+                // Proxy attempts by setting image src through proxies (avoids fetch CORS issues)
+                try {
+                    const ok3857 = await _setImageViaProxy(url3857);
+                    if (ok3857) return;
+                } catch (px1) { console.warn('proxy 3857 fail', px1); }
+                try {
+                    const ok4326 = await _setImageViaProxy(url4326);
+                    if (ok4326) return;
+                } catch (px2) { console.warn('proxy 4326 fail', px2); }
+
+                updateStatus('WMS 加载失败，请检查 CORS 或 URL（代理也失败）', true);
+            } catch (err) {
+                console.error(err);
+                updateStatus('WMS 更新失败', true);
             }
-
-            return successCount;
         }
 
-        function calculateDistance(point1, point2) {
-            // 输入校验，若点信息不完整则返回 0（避免抛出异常）
-            if (!point1 || !point2 || !Array.isArray(point1) || !Array.isArray(point2) || point1.length < 2 || point2.length < 2) return 0;
-            const R = 6371000;
-            const dLat = (point2[1] - point1[1]) * Math.PI / 180;
-            const dLon = (point2[0] - point1[0]) * Math.PI / 180;
-            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                Math.cos(point1[1] * Math.PI / 180) * Math.cos(point2[1] * Math.PI / 180) *
-                Math.sin(dLon / 2) * Math.sin(dLon / 2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            return R * c;
-        }
-
-        function calculateTravelTime(distance, transport) {
-            let speed = 5; // 默认步行速度 km/h
-
-            switch (transport) {
-                case 'walking':
-                    speed = 5; // 5 km/h
-                    break;
-                case 'driving':
-                    speed = 40; // 40 km/h
-                    break;
-                case 'bicycling':
-                    speed = 15; // 15 km/h
-                    break;
-                case 'transit':
-                    speed = 20; // 20 km/h
-                    break;
-            }
-
-            const hours = distance / 1000 / speed;
-            return hours * 60; // 返回分钟数
-        }
-
-        function formatDistance(meters) {
-            if (meters < 1000) {
-                return `${Math.round(meters)}米`;
+        function toggleWMS() {
+            if (!wmsEnabled) {
+                createWMSOverlay();
+                wmsEnabled = true;
+                updateStatus('WMS 图层已启用');
             } else {
-                return `${(meters / 1000).toFixed(1)}公里`;
+                removeWMSOverlay();
+                wmsEnabled = false;
+                updateStatus('WMS 图层已禁用');
             }
         }
 
-        function formatTime(minutes) {
-            if (minutes < 60) {
-                return `${Math.round(minutes)}分钟`;
-            } else {
-                const hours = Math.floor(minutes / 60);
-                const mins = Math.round(minutes % 60);
-                return mins > 0 ? `${hours}小时${mins}分钟` : `${hours}小时`;
-            }
+        // ============ 辅助功能 ============
+        function getGPSLocation() {
+            updateStatus('正在自动定位...');
+            AMap.plugin('AMap.Geolocation', function () {
+                var geolocation = new AMap.Geolocation({
+                    enableHighAccuracy: true,
+                    timeout: 5000,
+                    zoomToAccuracy: true,
+                    buttonPosition: 'RB'
+                });
+
+                geolocation.getCurrentPosition(function (status, result) {
+                    if (status == 'complete') {
+                        setMyCurrentLocation([result.position.lng, result.position.lat]);
+                        updateStatus('定位成功');
+                        searchNearby();
+                    } else {
+                        updateStatus('自动定位失败，请点击右上角输入框手动选点', true);
+                    }
+                });
+            });
         }
 
-        function getTransportName(mode) {
-            const names = {
-                'walking': '步行',
-                'driving': '驾车',
-                'bicycling': '骑行',
-                'transit': '公交'
-            };
-            return names[mode] || mode;
+        function showDarkHeatmap() {
+            if (heatmapLayer) { map.remove(heatmapLayer); heatmapLayer = null; return; }
+            if (currentMarkers.length === 0) { alert('请先搜索公厕数据'); return; }
+
+            AMap.plugin(["AMap.HeatMap"], function () {
+                heatmapLayer = new AMap.HeatMap(map, {
+                    radius: 25,
+                    opacity: [0, 0.8]
+                });
+                const points = currentMarkers.map(m => ({
+                    lng: m.getPosition().lng,
+                    lat: m.getPosition().lat,
+                    count: Math.floor(Math.random() * 100)
+                }));
+                heatmapLayer.setDataSet({ data: points, max: 100 });
+                document.getElementById('heatmapLegend').style.display = 'block';
+            });
         }
 
-        function showToiletInfo(toilet, position) {
-            const content = `
-                <div style="padding: 12px; max-width: 250px;">
-                    <div style="font-size: 16px; font-weight: bold; color: #2c3e50; margin-bottom: 8px;">
-                        ${toilet.name}
-                    </div>
-                    <div style="color: #7f8c8d; margin-bottom: 4px;">
-                        📍 ${toilet.city}
-                    </div>
-                    <div style="color: #555; margin-bottom: 4px;">
-                        🔢 ${toilet.type === 'accessible' ? '无障碍厕所' :
-                    toilet.type === 'mother' ? '母婴室' : '普通公厕'}
-                    </div>
-                    <div style="color: #e67e22; font-weight: 600;">
-                        🔥 热度值: ${toilet.popularity}/100
-                    </div>
-                </div>
-            `;
-
-            infoWindow.setContent(content);
-            infoWindow.open(map, position);
+        function updateHeatmapData(pois) {
+            const points = pois.map(p => ({
+                lng: p.location.lng,
+                lat: p.location.lat,
+                count: Math.floor(Math.random() * 100)
+            }));
+            heatmapLayer.setDataSet({ data: points, max: 100 });
         }
 
         function clearMarkers() {
-            markers.forEach(marker => map.remove(marker));
-            markers = [];
+            map.remove(currentMarkers);
+            currentMarkers = [];
         }
 
-        function updateStatistics() {
-            const total = NATIONAL_TOILET_DATA.length;
-            const general = NATIONAL_TOILET_DATA.filter(t => t.type === 'general').length;
-            const accessible = NATIONAL_TOILET_DATA.filter(t => t.type === 'accessible').length;
-            const mother = NATIONAL_TOILET_DATA.filter(t => t.type === 'mother').length;
-            const displayed = markers.length;
-
-            document.getElementById('totalToilets').textContent = total;
-            document.getElementById('displayedToilets').textContent = displayed;
-            document.getElementById('generalCount').textContent = general;
-            document.getElementById('accessibleCount').textContent = accessible;
-            document.getElementById('motherCount').textContent = mother;
+        function updateStatus(msg, isError = false) {
+            const el = document.getElementById('systemStatus');
+            el.innerText = msg;
+            el.style.borderLeftColor = isError ? '#e74c3c' : '#3498db';
+            console.log(msg);
         }
-
-        function updateStatus(message, isError = false) {
-            const statusDiv = document.getElementById('systemStatus');
-            statusDiv.textContent = message;
-            statusDiv.style.borderLeftColor = isError ? '#e74c3c' : '#3498db';
-        }
-
-        // ============ 事件绑定 ============
-        function bindEvents() {
-            // 地图模式
-            document.getElementById('btnNormalMap').onclick = () => switchMapMode('normal');
-            document.getElementById('btnSatellite').onclick = () => switchMapMode('satellite');
-            document.getElementById('btnDarkHeatmap').onclick = () => switchMapMode('heatmap');
-
-            // 热力图控制 - 新增
-            document.getElementById('btnHeatmapSmall').onclick = () => adjustHeatmapRadius(CONFIG.HEATMAP_OPTIONS.minRadius);
-            document.getElementById('btnHeatmapMedium').onclick = () => adjustHeatmapRadius(CONFIG.HEATMAP_OPTIONS.radius);
-            document.getElementById('btnHeatmapLarge').onclick = () => adjustHeatmapRadius(CONFIG.HEATMAP_OPTIONS.maxRadius);
-
-            // 位置功能
-            document.getElementById('btnSearchCity').onclick = searchCityToilets;
-            document.getElementById('btnGetLocation').onclick = getGPSLocation;
-
-            // QGIS WMS 图层开关（防御性绑定）
-            const _chkQgis = document.getElementById('chkQgisWms');
-            if (_chkQgis) {
-                _chkQgis.onchange = function () {
-                    toggleQgisWms(!!this.checked);
-                    updateStatus(this.checked ? 'QGIS WMS 图层已启用' : 'QGIS WMS 图层已禁用');
-                };
-            } else {
-                console.debug('chkQgisWms 未找到，跳过绑定');
-            }
-
-            // 公厕控制
-            document.getElementById('btnShowAll').onclick = () => fetchAllToiletsFromGaode(8);
-            document.getElementById('btnTestKeys').onclick = testKeys;
-
-            // 手动触发：使用 REST Geocoder 补全（仅在你勾选允许时才会使用）
-            const _btnRunRest = document.getElementById('btnRunRestGeocode');
-            const _chkRestAllow = document.getElementById('chkAllowRestGeocode');
-            if (_btnRunRest) {
-                _btnRunRest.onclick = async () => {
-                    const skipped = window._skippedPOIs || [];
-                    if (!skipped || skipped.length === 0) {
-                        updateStatus('当前没有待补全的 POI（或已全部补全）');
-                        return;
-                    }
-                    if (!_chkRestAllow || !_chkRestAllow.checked) {
-                        updateStatus('请先勾选“允许使用 REST Geocoder 补全（会使用 REST Key）”选项', true);
-                        return;
-                    }
-
-                    updateStatus('手动触发：使用 REST Geocoder 补全中（请稍候）...');
-                    try {
-                        const count = await geocodeMissingPOIs(skipped, 500, true);
-                        updateStatus(`REST 补全完成，成功补全 ${count} 条（请查看调试面板或控制台）`);
-                        showDebugPanel(window._skippedPOIs || [], count);
-                        // 重新填充并渲染
-                        populateToiletSelect();
-                        loadAllToilets();
-                    } catch (e) {
-                        console.warn('REST 补全出错：', e);
-                        updateStatus('REST 补全失败，请查看控制台日志', true);
-                    }
-                };
-            } else {
-                console.debug('btnRunRestGeocode 未找到（UI 可能较旧），跳过绑定');
-            }
-
-            document.getElementById('btnClearAll').onclick = () => {
-                // 清理所有自定义显示：标记、热力图、导航轨迹、导航人物、外部 WMS 图层，并恢复为标准底图
-                clearMarkers();
-
-                // 移除导航线
-                if (navigationLine) {
-                    try { map.remove(navigationLine); } catch (e) {}
-                    navigationLine = null;
-                }
-
-                // 移除导航人物标记
-                if (navCharacterMarker) {
-                    try { map.remove(navCharacterMarker); } catch (e) {}
-                    navCharacterMarker = null;
-                }
-
-                // 停止导航动画并重置状态
-                if (isNavigating) {
-                    stopNavigation();
-                }
-                isNavigating = false;
-
-                // 清除热力图
-                if (heatmapLayer) {
-                    try { map.remove(heatmapLayer); } catch (e) {}
-                    heatmapLayer = null;
-                    try { document.getElementById('heatmapLegend').style.display = 'none'; } catch (e) {}
-                }
-
-                // 移除 QGIS WMS 图层（若存在）并禁用
-                try { removeQgisWmsLayer(); } catch (e) {}
-                isQgisWmsEnabled = false;
-
-                // 清理 drivingService（如果有）并隐藏热力图小窗
-                try { if (drivingService) { drivingService.clear(); drivingService = null; } } catch (e) { console.debug('清理 drivingService 失败', e); }
-                try { const hv = document.getElementById('heatmapValue'); if (hv) hv.style.display = 'none'; } catch (e) {}
-
-                // 更新热力图信息显示为未启用
-                try { const el = document.getElementById('heatmapInfo'); if (el) el.textContent = '热力图：未启用'; } catch(e){}
-
-                // 强制切换回标准地图底图（移除卫星/自定义瓦片）
-                try { switchMapMode('normal'); } catch (e) { console.debug('切换标准地图失败', e); }
-                // 隐藏导航 UI
-                try { document.getElementById('navInfo').style.display = 'none'; } catch (e) {}
-                try { document.getElementById('navProgress').style.display = 'none'; } catch (e) {}
-                try { document.getElementById('btnPauseNavigation').style.display = 'none'; } catch (e) {}
-
-                updateStatus('已清空显示并恢复标准地图');
-                updateStatistics();
-            };
-
-            // 导航功能
-            document.getElementById('btnStartNavigation').onclick = startNavigation;
-            document.getElementById('btnPauseNavigation').onclick = togglePauseNavigation;
-            document.getElementById('btnStopNav').onclick = stopNavigation;
-
-            // 初始化公厕下拉为空（通过高德填充）
-            const toiletSelect = document.getElementById('selectToilet');
-            toiletSelect.innerHTML = '<option value="">请选择目标公厕</option>';
-        }
-
-        // 新增：停止导航
-        function stopNavigation() {
-            isNavigating = false;
-            isPaused = false;
-            if (navAnimationFrame) {
-                cancelAnimationFrame(navAnimationFrame);
-            }
-            if (navCharacterMarker) {
-                map.remove(navCharacterMarker);
-                navCharacterMarker = null;
-            }
-            if (navigationLine) {
-                map.remove(navigationLine);
-                navigationLine = null;
-            }
-            // 清理 drivingService（如果 Driving 插件添加了额外覆盖）
-            try { if (drivingService) { drivingService.clear(); drivingService = null; } } catch (e) { console.debug('清理 drivingService 失败', e); }
-
-            document.getElementById('navInfo').style.display = 'none';
-            document.getElementById('navProgress').style.display = 'none';
-            document.getElementById('btnPauseNavigation').style.display = 'none';
-            navPath = [];
-            navCurrentIndex = 0;
-            // 同时隐藏右侧热力图小窗中的值（若你想保留则可取消）
-            try { const hv = document.getElementById('heatmapValue'); if (hv) hv.style.display = 'none'; } catch (e) {}
-            updateStatus('导航已结束');
-        }
-
-        // ============ 修复：系统初始化（确保容器渲染） ============
-        window.onload = function () {
-            const mapContainer = document.getElementById('mapContainer');
-            // 校验容器尺寸是否正常，强制修复
-            if (mapContainer.offsetHeight === 0 || mapContainer.offsetWidth === 0) {
-                mapContainer.style.width = '100%';
-                mapContainer.style.height = 'calc(100vh - 60px)';
-                updateStatus('容器尺寸异常，已强制修复');
-            }
-
-            if (typeof AMap !== 'undefined') {
-                initMap();
-                bindEvents();
-                // 初始化后触发一次重绘，确保地图渲染完整
-                setTimeout(() => map.resize(), 500);
-                updateStatus('全国公厕系统已就绪（增强热力图版）');
-            } else {
-                updateStatus('高德地图API未加载，尝试动态加载JS API...', true);
-                loadAMapScript((err) => {
-                    if (err) {
-                        updateStatus('高德地图JS API加载失败，请检查 JS Key 与安全密钥（AMAP_JS_KEY / AMAP_JS_SECURITY）或网络', true);
-                        return;
-                    }
-                    initMap();
-                    bindEvents();
-                    setTimeout(() => map.resize(), 500);
-                    updateStatus('全国公厕系统已就绪（增强热力图版）');
-                });
-            }
-        };
     </script>
 </body>
 
